@@ -13,3 +13,11 @@ class BaseWeightClient(abc.ABC):
         @abc.abstractmethod
         def get_net_weight(self, *args, **kwargs):
             raise NotImplementedError()
+
+        @abc.abstractmethod
+        def close_connection(self, *args, **kwargs):
+            raise NotImplementedError()
+
+        @abc.abstractmethod
+        def close_all_connections(self, *args, **kwargs):
+            raise NotImplementedError()
