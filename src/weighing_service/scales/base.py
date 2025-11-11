@@ -1,23 +1,12 @@
 import abc
 
+from core.validators import ScalesResponse
+
+
 class BaseWeightClient(abc.ABC):
+    """Базовый класс драйверов весов."""
 
-        @abc.abstractmethod
-        def set_tare(self, *args, **kwargs):
-            raise NotImplementedError()
-
-        @abc.abstractmethod
-        def get_gross_weight(self, *args, **kwargs):
-            raise NotImplementedError()
-
-        @abc.abstractmethod
-        def get_net_weight(self, *args, **kwargs):
-            raise NotImplementedError()
-
-        @abc.abstractmethod
-        def close_connection(self, *args, **kwargs):
-            raise NotImplementedError()
-
-        @abc.abstractmethod
-        def close_all_connections(self, *args, **kwargs):
-            raise NotImplementedError()
+    @abc.abstractmethod
+    async def get_gross_weight(self, *args, **kwargs) -> ScalesResponse:
+        """Абстрактный метод отправки команды получения веса брутто."""
+        raise NotImplementedError()
