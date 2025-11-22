@@ -1,10 +1,10 @@
 import asyncio
 
-from loguru import logger
 from websockets.asyncio.server import serve
 
 from core.config import settings as s
-from core.handlers import handler
+from core.handler import handler
+from core.log import logger
 
 
 async def main() -> None:

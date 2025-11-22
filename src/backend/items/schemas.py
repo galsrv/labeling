@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 
+
 class ItemReadSchema(BaseModel):
     """Модель чтения записи продукта."""
     id: int

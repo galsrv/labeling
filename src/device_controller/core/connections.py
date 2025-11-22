@@ -1,17 +1,21 @@
 import asyncio
 
-from loguru import logger
-
 from core.config import settings as s
+from core.log import L, logger
 
 
 class ScaleConnectionsPool:
-    """Синглтон-класс для работы с TCP-подключениями к весам."""
+    """Синглтон-класс для работы с TCP-подключениями к устройствам."""
     _connections: dict[tuple[str, int], tuple[asyncio.StreamReader, asyncio.StreamWriter]] = {}
 
     @classmethod
-    async def get(cls, host: str, port: int) -> tuple[asyncio.StreamReader, asyncio.StreamWriter]:
-        """Возвращает активное TCP соединение c весами или открывает новое."""
+    def device_available(cls, host: str, port: int) -> bool:
+        """Проверяем доступность устройства, то есть отсутствие активного коннекта с ним."""
+        return (host, port) not in cls._connections
+
+    @classmethod
+    async def get(cls, host: str, port: int, websocket_id: str) -> tuple[asyncio.StreamReader, asyncio.StreamWriter]:
+        """Возвращает активное TCP соединение c устройством или открывает новое."""
         scales_socket = (host, port)
 
         # Если соединение уже есть и живо, то его и возвращаем
@@ -21,7 +25,7 @@ class ScaleConnectionsPool:
             if not writer.is_closing():
                 return reader, writer
 
-            logger.warning(f"🔄 Соединение с {host}:{port} закрыто, пересоздаем")
+            logger.warning(f'<{websocket_id}> 🔄 Соединение с {host}:{port} закрыто, пересоздаем')
             del cls._connections[scales_socket]
 
         # Если соединения нет, то создаем новое и возвращаем
@@ -30,22 +34,22 @@ class ScaleConnectionsPool:
                 asyncio.open_connection(host, port), timeout=s.GET_WEIGHT_TIMEOUT)
 
             cls._connections[scales_socket] = (reader, writer)
-            logger.info(f"⚡ Открыто новое TCP соединение с {host}:{port}")
+            logger.log(L.SCALES, f'<{websocket_id}>⚡ Открыто новое TCP соединение с {host}:{port}')
             return reader, writer
 
         except Exception as e:
-            logger.error(f"❌ Не удалось установить TCP соединение с {host}:{port}: {e}")
+            logger.error(f'<{websocket_id}> ❌ Не удалось установить TCP соединение с {host}:{port}: {e}')
             raise
 
     @classmethod
-    async def close(cls, host: str, port: int) -> None:
+    async def close(cls, host: str, port: int, websocket_id: str) -> None:
         """Закрываем активное соединение."""
         scales_socket = (host, port)
         if scales_socket in cls._connections:
             _, writer = cls._connections.pop(scales_socket)
             writer.close()
             await writer.wait_closed()
-            logger.info(f"🔚 Закрыто TCP соединение с весами {host}:{port}")
+            logger.log(L.SCALES, f'<{websocket_id}> ⚡ Закрыто TCP соединение с устройством {host}:{port}')
 
     @classmethod
     async def close_all(cls) -> None:
@@ -53,7 +57,7 @@ class ScaleConnectionsPool:
         for (host, port), (_, writer) in cls._connections.items():
             writer.close()
             await writer.wait_closed()
-            logger.info(f"🔚 Закрыто TCP соединение с весами {host}:{port}")
+            logger.log(L.SCALES, f'⚡ Закрыто TCP соединение с устройством {host}:{port}')
         cls._connections.clear()
 
 

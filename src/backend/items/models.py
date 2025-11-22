@@ -4,6 +4,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from core.config import settings as s
 from core.database import AppBaseClass
 
+
 class ItemsOrm(AppBaseClass):
     """Модель справочника продуктов."""
     __tablename__ = 'items'
@@ -16,10 +17,10 @@ class ItemsOrm(AppBaseClass):
     nominal_weight: Mapped[float] = mapped_column(Float, nullable=False)
     min_weight: Mapped[float] = mapped_column(Float, nullable=False)
     max_weight: Mapped[float] = mapped_column(Float, nullable=False)
-    package_weight: Mapped[float] = mapped_column(Float, nullable=False)
     gtin: Mapped[int] = mapped_column(BigInteger, nullable=False, index=True)
     shelf_life: Mapped[int] = mapped_column(Integer, nullable=False)
     units_per_box: Mapped[int] = mapped_column(Integer, nullable=False)
+    tare_weight: Mapped[float] = mapped_column(Float, nullable=False)
 
     __table_args__ = (
         CheckConstraint(gtin >= s.ITEM_GTIN_MIN_VALUE, name='check_gtin_min'),

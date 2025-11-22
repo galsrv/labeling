@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from items.schemas import ItemReadSchema
 from transactions.models import OrderStatus
 
+
 class OrderReadSchema(BaseModel):
     """Модель чтения записи заказа на производство."""
     id: int

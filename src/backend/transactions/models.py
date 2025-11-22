@@ -7,10 +7,13 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from core.database import AppBaseClass
 from items.models import ItemsOrm
 
+
 class OrderStatus(Enum):
+    """Возможные статусы заказа на производство."""
     CREATED = 'CREATED'
     ACTIVE = 'ACTIVE'
     CLOSED = 'CLOSED'
+
 
 class OrderOrm(AppBaseClass):
     """Модель заказов на производство."""
@@ -23,6 +26,9 @@ class OrderOrm(AppBaseClass):
 
     production_date: Mapped[date] = mapped_column(Date, nullable=False)
     expiration_date: Mapped[date] = mapped_column(Date, nullable=False)
+
+    ordered_kg: Mapped[float] = mapped_column(Float, nullable=False)
+    ordered_boxes: Mapped[int] = mapped_column(Integer, nullable=False)
 
     produced_kg: Mapped[float] = mapped_column(Float, default=0, server_default=text('0'))
     produced_boxes: Mapped[int] = mapped_column(Integer, default=0, server_default=text('0'))

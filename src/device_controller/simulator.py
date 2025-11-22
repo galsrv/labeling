@@ -2,7 +2,7 @@ import socket
 
 from loguru import logger
 
-from scales.tenzo_m.utils import decode_weight_frame, generate_random_weight_response
+from devices.scales.tenzo_m.utils import decode_response, generate_random_weight_response
 
 HOST = '127.0.0.1'
 PORT = 9999
@@ -44,7 +44,7 @@ def main() -> None:
                         logger.info(f'⬅️  Получены данные: {data}')
 
                         response: bytes = generate_random_weight_response(MIN_WEIGHT, MAX_WEIGHT)
-                        response_decoded: tuple | None = decode_weight_frame(response)
+                        response_decoded: tuple | None = decode_response(response)
 
                         # Чтобы линтер не ругался, вряд ли мы сами сгенерируем неверный ответ
                         if response_decoded is None:

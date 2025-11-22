@@ -15,7 +15,8 @@ async def get_items(
 ) -> list[ItemReadSchema]:
     """Эндпоинт получения всех продуктов."""
     items = await items_service.get_all_items(session)
-    return items # pyright: ignore[reportReturnType]
+    return items  # pyright: ignore[reportReturnType]
+
 
 @items_router.get(
     '/{item_id}', response_model=ItemReadSchema, summary='Получить продукт')
@@ -25,4 +26,4 @@ async def get_item(
 ) -> ItemReadSchema:
     """Эндпоинт получения продукта."""
     item = await items_service.get_item(session, item_id)
-    return item # pyright: ignore[reportReturnType]
+    return item  # pyright: ignore[reportReturnType]

@@ -15,7 +15,8 @@ async def get_orders(
 ) -> list[OrderReadSchema]:
     """Эндпоинт получения всех заказов на производство."""
     orders = await order_service.get_all_orders(session)
-    return orders # pyright: ignore[reportReturnType]
+    return orders  # pyright: ignore[reportReturnType]
+
 
 @orders_router.get(
     '/{order_id}', response_model=OrderReadSchema, summary='Получить заказ на производство')
@@ -25,4 +26,4 @@ async def get_order(
 ) -> OrderReadSchema:
     """Эндпоинт получения заказа на производство."""
     order = await order_service.get_order(session, order_id)
-    return order # pyright: ignore[reportReturnType]
+    return order  # pyright: ignore[reportReturnType]

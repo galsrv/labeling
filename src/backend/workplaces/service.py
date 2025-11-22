@@ -3,7 +3,21 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.base_service import BaseService
 from core.config import settings as s
-from workplaces.models import ScalesOrm, WorkplaceOrm
+from workplaces.models import DeviceDriversOrm, ScalesOrm, WorkplaceOrm
+
+
+class DeviceDriversService(BaseService):
+    """Класс сервисных функций модели."""
+    def __init__(self) -> None:
+        super().__init__(DeviceDriversOrm)
+
+    async def get_all_drivers(
+        self,
+        session: AsyncSession,
+    ) -> list[DeviceDriversOrm]:
+        """Получаем все драйверы."""
+        drivers = await self.get_all(session)
+        return drivers
 
 
 class ScalesService(BaseService):
@@ -34,6 +48,7 @@ class ScalesService(BaseService):
 
         return scales
 
+
 class WorkplaceService(BaseService):
     """Класс сервисных функций модели."""
     def __init__(self) -> None:
@@ -62,6 +77,8 @@ class WorkplaceService(BaseService):
 
         return workplace
 
+
+drivers_service = DeviceDriversService()
 
 scales_service = ScalesService()
 

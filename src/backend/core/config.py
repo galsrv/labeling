@@ -6,6 +6,7 @@ from pydantic_settings import BaseSettings
 dotenv_path = os.path.join(os.path.dirname(__file__), '../../../infra/.env')
 load_dotenv(dotenv_path)
 
+
 class Settings(BaseSettings):
     """Класс настроек приложения."""
 
@@ -33,6 +34,8 @@ class Settings(BaseSettings):
     ITEM_NUTRITION_MAX_LENGTH: int = 255
     ITEM_GTIN_MIN_VALUE: int = 1_000_000_000_000
     ITEM_GTIN_MAX_VALUE: int = 9_999_999_999_999
+
+    DRIVER_NAME_MAX_LENGTH: int = 20
 
     SCALES_PORT_MIN: int = 1024
     SCALES_PORT_MAX: int = 65535
