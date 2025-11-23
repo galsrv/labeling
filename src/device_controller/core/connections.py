@@ -4,17 +4,12 @@ from core.config import settings as s
 from core.log import L, logger
 
 
-class ScaleConnectionsPool:
+class TcpConnection:
     """Синглтон-класс для работы с TCP-подключениями к устройствам."""
     _connections: dict[tuple[str, int], tuple[asyncio.StreamReader, asyncio.StreamWriter]] = {}
 
     @classmethod
-    def device_available(cls, host: str, port: int) -> bool:
-        """Проверяем доступность устройства, то есть отсутствие активного коннекта с ним."""
-        return (host, port) not in cls._connections
-
-    @classmethod
-    async def get(cls, host: str, port: int, websocket_id: str) -> tuple[asyncio.StreamReader, asyncio.StreamWriter]:
+    async def get_or_create(cls, host: str, port: int, websocket_id: str) -> tuple[asyncio.StreamReader, asyncio.StreamWriter]:
         """Возвращает активное TCP соединение c устройством или открывает новое."""
         scales_socket = (host, port)
 
@@ -25,7 +20,7 @@ class ScaleConnectionsPool:
             if not writer.is_closing():
                 return reader, writer
 
-            logger.warning(f'<{websocket_id}> 🔄 Соединение с {host}:{port} закрыто, пересоздаем')
+            logger.warning(f'<{websocket_id}> ❌ Соединение с {host}:{port} закрыто, пересоздаем')
             del cls._connections[scales_socket]
 
         # Если соединения нет, то создаем новое и возвращаем
@@ -61,4 +56,4 @@ class ScaleConnectionsPool:
         cls._connections.clear()
 
 
-scale_connections = ScaleConnectionsPool()
+tcp_connection = TcpConnection()

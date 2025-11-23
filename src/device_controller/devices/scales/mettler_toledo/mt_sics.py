@@ -1,4 +1,4 @@
-from devices.base import BaseDeviceClient
+from devices.base import BaseDeviceDriver
 from devices.scales.mettler_toledo.utils import decode_response
 
 get_gross_weight_command = b'S\r\n'
@@ -7,7 +7,7 @@ set_tare_command = b'T\r\n'
 clear_tare_command = b'TAC\r\n'
 
 
-class MtSics(BaseDeviceClient):
+class MtSics(BaseDeviceDriver):
     """Класс с реализацией протокола MTSics Level 1.
 
     Проверены весы Mettler Toledo IND226

@@ -5,7 +5,6 @@ from pydantic import ValidationError
 from websockets.asyncio.server import ServerConnection
 from websockets.exceptions import ConnectionClosed
 
-from core.connections import scale_connections
 from core.config import settings as s
 from core.log import logger
 from validators.request import ClientRequest
@@ -35,6 +34,13 @@ class WebsocketsHandler:
         """Реагируем на неверную команду."""
         await self.send_message(websocket, ServerResponse(device=request.device_socket, ok=False, type=ResponseTypes.error, data=None, message=s.ERROR_UNKNOWN_COMMNAD))
 
+    async def send_message(self, websocket: ServerConnection, response: ServerResponse) -> None:
+        """Форматируем ответ по шаблону и отправляем клиенту."""
+        data_json = response.model_dump_json(ensure_ascii=False)
+
+        await websocket.send(data_json)
+        logger.info(f'<{websocket.id}> → Отправлен ответ в {websocket.remote_address}: {data_json}')
+
     async def validate_request(self, websocket: ServerConnection, request_binary: bytes) -> ClientRequest | None:
         """Проверяем корректность и полноту запроса."""
         request_dict: dict = json.loads(request_binary)
@@ -47,12 +53,7 @@ class WebsocketsHandler:
 
     async def is_device_available(self, websocket: ServerConnection, request: ClientRequest) -> bool:
         """Проверяем наличие активных подключений к этому устройству, блокируем вторую попытку подключения."""
-        if request.device_socket in ACTIVE_WEBSOCKETS:
-            await self.send_message(websocket, ServerResponse(device=request.device_socket, ok=False, type=ResponseTypes.error, data=None, message=f'Устройство {request.device_socket} уже занято'))
-            logger.warning(f'<{websocket.id}> ❌ Попытка второго подключения к {request.device_socket}')
-            return False
-
-        return True
+        return request.device_socket not in ACTIVE_WEBSOCKETS
 
     async def exchange_loop(self, websocket: ServerConnection, request: ClientRequest) -> None:
         """Запускаем цикл обмена с устройством + отправки данных клиенту."""
@@ -62,7 +63,7 @@ class WebsocketsHandler:
     async def exchange_iteration(self, websocket: ServerConnection, request: ClientRequest) -> None:
         """Осуществляем однократный обмен запрос-ответ с устройством."""
         try:
-            scales_response: ScalesResponse = await request.driver.exchange(request.ip.compressed, request.port, websocket.id)
+            scales_response: ScalesResponse = await request.driver.run_exchange(request.ip.compressed, request.port, websocket.id)
             server_response = ServerResponse.model_validate(scales_response)
             await self.send_message(websocket, server_response)
             await asyncio.sleep(s.GET_WEIGHT_POLL_INTERVAL)
@@ -71,21 +72,13 @@ class WebsocketsHandler:
         except Exception as e:
             logger.error(f'<{websocket.id}> ❌ Ошибка в цикле опроса устройства: {e}')
 
-    async def stop_exchange(self, websocket: ServerConnection, request: ClientRequest) -> None:
-        """Закрываем TCP-соединение с устройством."""
-        await scale_connections.close(*request.device_socket, websocket.id)
-        await self.send_message(websocket, ServerResponse(device=request.device_socket, ok=True, type=ResponseTypes.info, data=None, message=s.MESSAGE_EXCHANGE_STOPPED))
-
     async def stream(self, websocket: ServerConnection, request: ClientRequest) -> None:
-        """Обрабатываем команду START."""
+        """Обрабатываем команду STREAM."""
         if not await self.is_device_available(websocket, request):
             return
 
         # Создаем новую задачу обмена с устройством
-        poll_task = asyncio.create_task(self.exchange_loop(websocket, request))
-        ACTIVE_WEBSOCKETS[request.device_socket] = poll_task
-        logger.info(f'<{websocket.id}> Создана задача на обмен с {request.device_socket}')
-
+        self.task_creation(websocket, request)
         await self.send_message(websocket, ServerResponse(device=request.device_socket, ok=True, type=ResponseTypes.info, data=None, message=s.MESSAGE_EXCHANGE_STARTED))
 
     async def get(self, websocket: ServerConnection, request: ClientRequest) -> None:
@@ -105,40 +98,37 @@ class WebsocketsHandler:
 
     async def stop(self, websocket: ServerConnection, request: ClientRequest) -> None:
         """Обрабатываем команду STOP."""
-        if request.device_socket in ACTIVE_WEBSOCKETS:
-            # Удаляем задачу в спуле сервера
-            task = ACTIVE_WEBSOCKETS.pop(request.device_socket)
-            task.cancel()  # вызывает asyncio.CancelledError в момент, когда __main_loop натыкается на await
-            await asyncio.gather(task, return_exceptions=True)  # для корректного закрытия задачи
-
-            await self.stop_exchange(websocket, request)
+        await self.task_cancellation(websocket, request)
 
     async def status(self, websocket: ServerConnection, request: ClientRequest) -> None:
         """Обрабатываем команду STATUS."""
-        device_available: bool = scale_connections.device_available(*request.device_socket)
+        device_available = self.is_device_available(websocket, request)
         message = s.MESSAGE_DEVICE_AVAILABLE if device_available else s.MESSAGE_DEVICE_BUSY
         await self.send_message(websocket, ServerResponse(device=request.device_socket, ok=device_available, type=ResponseTypes.status, data=None, message=message))
+        logger.info(f'<{websocket.id}> Проверка статуса устройства {request.device_socket}, устройство доступно = {device_available}')
 
-    async def send_message(self, websocket: ServerConnection, response: ServerResponse) -> None:
-        """Форматируем ответ по шаблону и отправляем клиенту."""
-        data_json = response.model_dump_json(ensure_ascii=False)
+    async def task_creation(self, websocket: ServerConnection, request: ClientRequest) -> None:
+        """Создаем задачу на потоковое чтение данных с устройства."""
+        poll_task = asyncio.create_task(self.exchange_loop(websocket, request))
+        ACTIVE_WEBSOCKETS[request.device_socket] = poll_task
+        logger.info(f'<{websocket.id}> Создана задача на обмен с {request.device_socket}')
 
-        await websocket.send(data_json)
-        logger.info(f'<{websocket.id}> → Отправлен ответ в {websocket.remote_address}: {data_json}')
+    async def task_cancellation(self, websocket: ServerConnection, request: ClientRequest | None = None) -> None:
+        """Отменяем задачу на потоковое чтение данных с устройства."""
+        if request and request.device_socket and request.device_socket in ACTIVE_WEBSOCKETS:
+            # Удаляем задачу из пула сервера
+            task = ACTIVE_WEBSOCKETS.pop(request.device_socket)
+            if not task.done():
+                task.cancel()
+                await asyncio.gather(task, return_exceptions=True)  # Ожидаем закрытия задачи
+                logger.info(f'<{websocket.id}> Отменена задача на обмен с {request.device_socket}')
 
-    async def cleanup(self, websocket: ServerConnection, request: ClientRequest | None = None) -> None:
-        """Чистим данные после закрытия вебсокета."""
-        if request and request.device_socket:
-            # Удаляем задачи в спуле сервера
-            if request.device_socket in ACTIVE_WEBSOCKETS:
-                task = ACTIVE_WEBSOCKETS.pop(request.device_socket)
-                if not task.done():
-                    task.cancel()
-                    await asyncio.gather(task, return_exceptions=True)
-                    logger.info(f'<{websocket.id}> Вебсокет закрыт')
+            await self.stop_exchange(websocket, request)
 
-            # Отдельно закрываем TCP-соединение с весами (резерв)
-            await scale_connections.close(*request.device_socket, websocket.id)
+    async def stop_exchange(self, websocket: ServerConnection, request: ClientRequest) -> None:
+        """Закрываем TCP-соединение с устройством."""
+        await request.driver.stop_exchange(*request.device_socket, websocket.id)
+        await self.send_message(websocket, ServerResponse(device=request.device_socket, ok=True, type=ResponseTypes.info, data=None, message=s.MESSAGE_EXCHANGE_STOPPED))
 
     async def main_handler(self, websocket: ServerConnection) -> None:
         """Точка входа в процесс обработки запросов."""
@@ -158,7 +148,7 @@ class WebsocketsHandler:
             logger.info(f'<{websocket.id}> ❌ Клиент закрыл соединение')
         finally:
             # Чистим данные после закрытия вебсокета
-            await self.cleanup(request.device_socket if request else None)
+            await self.task_cancellation(request.device_socket if request else None)
 
 
 handler = WebsocketsHandler()

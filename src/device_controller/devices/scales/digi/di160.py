@@ -1,8 +1,8 @@
-from devices.base import BaseDeviceClient
+from devices.base import BaseDeviceDriver
 from devices.scales.digi.utils import decode_response
 
 
-class DigiDi160(BaseDeviceClient):
+class DigiDi160(BaseDeviceDriver):
     """Класс с реализацией обмена с весами DIGI DI160.
 
     Дефолтные параметры: Частота = 9600, бит = 7, стоп бит = 1, четность = четные
