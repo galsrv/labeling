@@ -3,7 +3,7 @@ from enum import Enum
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from pydantic.networks import IPvAnyAddress
 
-from devices.base import BaseDeviceClient
+from devices.base import BaseDeviceDriver
 from devices.scales.drivers import get_driver
 
 
@@ -20,11 +20,11 @@ class ClientRequest(BaseModel):
     command: Commands
     ip: IPvAnyAddress
     port: int = Field(ge=1024, le=65535)
-    driver: BaseDeviceClient
+    driver: BaseDeviceDriver
 
     @field_validator('driver', mode='before')
     @classmethod
-    def find_driver(cls, value: str) -> BaseDeviceClient:
+    def find_driver(cls, value: str) -> BaseDeviceDriver:
         """Ищем запрошенный драйвер, возвращаем его в атрибут объекта модели."""
         return get_driver(value)
 

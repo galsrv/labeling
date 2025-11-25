@@ -20,12 +20,12 @@ class BaseDeviceDriver:
         """Отправляем запрос на устройство по TCP."""
         writer.write(command)
         await writer.drain()
-        logger.log(L.SCALES, f'<{websocket_id}> → {host}:{port}: {command}')
+        logger.log(L.SCALES, f'<{websocket_id}> ➡️  {host}:{port}: {command}')
 
     async def receive_from_device(self, host: str, port: int, reader: asyncio.StreamReader, websocket_id: str) -> bytes:
         """Получаем ответ от устройства по TCP."""
         response = await asyncio.wait_for(reader.read(self.response_size_bytes), timeout=s.GET_WEIGHT_TIMEOUT)
-        logger.log(L.SCALES, f'<{websocket_id}> ← {host}:{port}: {response}')
+        logger.log(L.SCALES, f'<{websocket_id}> ⬅️  {host}:{port}: {response}')
 
         return response
 
