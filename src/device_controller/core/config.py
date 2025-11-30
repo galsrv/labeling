@@ -1,17 +1,29 @@
+import os
+
+from dotenv import load_dotenv
 from pydantic_settings import BaseSettings
+
+dotenv_path = os.path.join(os.path.dirname(__file__), '../../../infra/.env')
+load_dotenv(dotenv_path)
 
 
 class Settings(BaseSettings):
     """Класс настроек проекта."""
+    PROD: bool = os.getenv('PROD', 'False').lower() in ('true', '1')
+
     WS_HOST: str = '127.0.0.1'
     WS_PORT: int = 8000
 
-    MIN_WEIGHT: float = 0.1
-    GET_WEIGHT_ATTEMPTS: int = 100
-    GET_WEIGHT_TIMEOUT: int = 3
+    CONNECT_TO_DEVICE_ATTEMPTS: int = 5
+    CONNECT_TO_DEVICE_TIMEOUT: int = 3
+    WAIT_FOR_DEVICE_RESPONSE_TIMEOUT: int = 2
+    DEVICE_RESPONSE_SIZE_BYTES: int = 20
+
     GET_WEIGHT_POLL_INTERVAL: int = 1
+    MIN_WEIGHT: float = 0.1
 
     LOG_FILE_PATH: str = 'logs/log.txt'
+    LOG_NUMBER_OF_FILES_TO_KEEP: int = 5
     LOG_FILE_MAX_SIZE: str = '1 MB'
 
     ERROR_UNKNOWN_COMMNAD: str = 'Получена неизвестная команда'

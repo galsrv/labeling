@@ -9,32 +9,52 @@ class TcpConnection:
     _connections: dict[tuple[str, int], tuple[asyncio.StreamReader, asyncio.StreamWriter]] = {}
 
     @classmethod
-    async def get_or_create(cls, host: str, port: int, websocket_id: str) -> tuple[asyncio.StreamReader, asyncio.StreamWriter]:
-        """Возвращает активное TCP соединение c устройством или открывает новое."""
+    def get(cls, host: str, port: int, websocket_id: str) -> tuple[asyncio.StreamReader | None, asyncio.StreamWriter | None]:
+        """Возвращает активное TCP соединение c устройством, если таковое есть."""
         scales_socket = (host, port)
 
-        # Если соединение уже есть и живо, то его и возвращаем
         if scales_socket in cls._connections:
             reader, writer = cls._connections[scales_socket]
 
             if not writer.is_closing():
                 return reader, writer
 
-            logger.warning(f'<{websocket_id}> ❌ Соединение с {host}:{port} закрыто, пересоздаем')
             del cls._connections[scales_socket]
 
-        # Если соединения нет, то создаем новое и возвращаем
-        try:
-            reader, writer = await asyncio.wait_for(
-                asyncio.open_connection(host, port), timeout=s.GET_WEIGHT_TIMEOUT)
+        return None, None
 
-            cls._connections[scales_socket] = (reader, writer)
-            logger.log(L.SCALES, f'<{websocket_id}>⚡ Открыто новое TCP соединение с {host}:{port}')
-            return reader, writer
+    @classmethod
+    async def create(cls, host: str, port: int, websocket_id: str) -> tuple[asyncio.StreamReader, asyncio.StreamWriter]:
+        """Открываем новоем TCP соединение c устройством."""
+        scales_socket = (host, port)
 
-        except Exception as e:
-            logger.error(f'<{websocket_id}> ❌ Не удалось установить TCP соединение с {host}:{port}: {e}')
-            raise
+        for _ in range(s.CONNECT_TO_DEVICE_ATTEMPTS):
+            try:
+                reader, writer = await asyncio.wait_for(
+                    asyncio.open_connection(host, port), timeout=s.CONNECT_TO_DEVICE_TIMEOUT)
+
+                cls._connections[scales_socket] = (reader, writer)
+                logger.log(L.SCALES, f'<{websocket_id}>⚡ Открыто новое TCP соединение с {host}:{port}')
+                return reader, writer
+
+            except Exception as e:
+                exception = e
+                continue
+
+        logger.error(f'<{websocket_id}> ❌ Не удалось установить TCP соединение с {host}:{port}: {exception}')
+        raise exception
+
+    @classmethod
+    async def get_or_create(cls, host: str, port: int, websocket_id: str) -> tuple[asyncio.StreamReader, asyncio.StreamWriter]:
+        """Возвращает активное TCP соединение c устройством или открывает новое."""
+        # Если соединение уже есть и не в состоянии закрытия, то его и возвращаем
+        reader, writer = cls.get(host, port, websocket_id)
+
+        if reader is None or writer is None:
+            # Если соединения нет, то создаем новое
+            reader, writer = await cls.create(host, port, websocket_id)
+
+        return reader, writer
 
     @classmethod
     async def close(cls, host: str, port: int, websocket_id: str) -> None:

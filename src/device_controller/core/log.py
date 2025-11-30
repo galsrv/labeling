@@ -11,7 +11,11 @@ class L(str, Enum):
 
 
 # Добавляем сохранение логов в файл
-logger.add(s.LOG_FILE_PATH, rotation=s.LOG_FILE_MAX_SIZE)
+logger.add(
+    sink=s.LOG_FILE_PATH,
+    rotation=s.LOG_FILE_MAX_SIZE,
+    retention=s.LOG_NUMBER_OF_FILES_TO_KEEP
+)
 
 # Дополнительный уровень логов  для обмена с весами, для визуального выделения
 logger.level(L.SCALES, no=15, color='<yellow>')

@@ -16,6 +16,6 @@ async def main() -> None:
 
 if __name__ == '__main__':
     try:
-        asyncio.run(main())
+        asyncio.run(main(), debug=not s.PROD)
     except KeyboardInterrupt:
         logger.info('❌ Websockets сервер остановлен вручную')
