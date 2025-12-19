@@ -1,26 +1,18 @@
-from enum import Enum
-
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from pydantic.networks import IPvAnyAddress
 
 from devices.base import BaseDeviceDriver
-from devices.scales.drivers import get_driver
-
-
-class Commands(Enum):
-    """Енум-класс для команд, обрабатываемых веб-сервером."""
-    stream = 'stream'
-    get = 'get'
-    stop = 'stop'
-    status = 'status'
+from devices.drivers import get_driver
+from validators.base import Modes
 
 
 class ClientRequest(BaseModel):
     """Класс для валидации и сериализации запросов от клиента."""
-    command: Commands
+    mode: Modes
     ip: IPvAnyAddress
     port: int = Field(ge=1024, le=65535)
     driver: BaseDeviceDriver
+    dpl_command: str | None = None
 
     @field_validator('driver', mode='before')
     @classmethod

@@ -8,7 +8,7 @@ from websockets.exceptions import ConnectionClosed
 from core.config import settings as s
 from core.log import logger
 from validators.request import ClientRequest
-from validators.response import ScalesResponse, ServerResponse, ResponseTypes
+from validators.response import DeviceResponse, ServerResponse, ResponseTypes
 
 ACTIVE_WEBSOCKETS: dict[tuple[str, int], asyncio.Task] = {}
 
@@ -27,10 +27,10 @@ class WebsocketsHandler:
 
     async def dispatch(self, websocket: ServerConnection, request: ClientRequest) -> None:
         """Распределяем запросы по методам."""
-        handler = getattr(self, request.command.value.lower(), self.command_not_found)
+        handler = getattr(self, request.mode.value.lower(), self.mode_not_found)
         return await handler(websocket, request)
 
-    async def command_not_found(self, websocket: ServerConnection, request: ClientRequest) -> None:
+    async def mode_not_found(self, websocket: ServerConnection, request: ClientRequest) -> None:
         """Реагируем на неверную команду."""
         await self.send_message(websocket, ServerResponse(device=request.device_socket, ok=False, type=ResponseTypes.error, data=None, message=s.ERROR_UNKNOWN_COMMNAD))
 
@@ -50,7 +50,7 @@ class WebsocketsHandler:
         request_dict: dict = json.loads(request_binary)
         try:
             request = ClientRequest(**request_dict)
-            logger.info(f'<{websocket.id}> ⬅️  Получен запрос {request.command} для устройства {request.device_socket}')
+            logger.info(f'<{websocket.id}> ⬅️  Получен запрос {request.mode} для устройства {request.device_socket}')
             return request
         except ValidationError:
             await self.send_message(websocket, ServerResponse(device=(request_dict['ip'], request_dict['port']), ok=False, type=ResponseTypes.error, data=None, message=s.ERROR_REQUEST_VALIDATION))
@@ -67,15 +67,15 @@ class WebsocketsHandler:
             except ConnectionClosed:
                 logger.info(f'<{websocket.id}> ❌  Вебсокет закрыт, цикл остановлен')
                 break
+            await asyncio.sleep(s.DEVICE_POLL_INTERVAL)
 
         await self.task_cancellation(websocket, request)
 
     async def exchange_iteration(self, websocket: ServerConnection, request: ClientRequest) -> None:
         """Осуществляем однократный обмен запрос-ответ с устройством."""
-        scales_response: ScalesResponse = await request.driver.run_exchange(request.ip.compressed, request.port, websocket.id)
-        server_response = ServerResponse.model_validate(scales_response)
+        device_response: DeviceResponse = await request.driver.run_exchange(request.ip.compressed, request.port, websocket.id)
+        server_response = ServerResponse.model_validate(device_response)
         await self.send_message(websocket, server_response)
-        await asyncio.sleep(s.GET_WEIGHT_POLL_INTERVAL)
 
     async def stream(self, websocket: ServerConnection, request: ClientRequest) -> None:
         """Обрабатываем команду STREAM."""
@@ -85,6 +85,19 @@ class WebsocketsHandler:
         # Создаем новую задачу обмена с устройством
         await self.task_creation(websocket, request)
         await self.send_message(websocket, ServerResponse(device=request.device_socket, ok=True, type=ResponseTypes.info, data=None, message=s.MESSAGE_EXCHANGE_STARTED))
+
+    async def send(self, websocket: ServerConnection, request: ClientRequest) -> None:
+        """Обрабатываем команду SEND."""
+        if not await self.is_device_available(websocket, request):
+            return
+
+        await request.driver.send(request.ip.compressed, request.port, websocket.id, request.dpl_command)
+
+        await self.send_message(websocket, ServerResponse(device=request.device_socket, ok=True, type=ResponseTypes.info, data=None, message=s.MESSAGE_COMMAND_SENT))
+        logger.info(f'<{websocket.id}> ✅  Команда отправлена на устройство {request.device_socket}')
+
+        await self.stop_exchange(websocket, request)
+        await websocket.close()
 
     async def get(self, websocket: ServerConnection, request: ClientRequest) -> None:
         """Обрабатываем команду GET."""

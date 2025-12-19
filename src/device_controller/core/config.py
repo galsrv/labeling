@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     WAIT_FOR_DEVICE_RESPONSE_TIMEOUT: int = 2
     DEVICE_RESPONSE_SIZE_BYTES: int = 20
 
-    GET_WEIGHT_POLL_INTERVAL: int = 1
+    DEVICE_POLL_INTERVAL: int = 1
     MIN_WEIGHT: float = 0.1
 
     LOG_FILE_PATH: str = 'logs/log.txt'
@@ -35,6 +35,7 @@ class Settings(BaseSettings):
 
     MESSAGE_EXCHANGE_STOPPED: str = 'Обмен остановлен'
     MESSAGE_EXCHANGE_STARTED: str = 'Обмен запущен'
+    MESSAGE_COMMAND_SENT: str = 'Команда отправлена на устройство'
 
     MESSAGE_DEVICE_BUSY: str = 'Устройство занято'
     MESSAGE_DEVICE_AVAILABLE: str = 'Устройство доступно'

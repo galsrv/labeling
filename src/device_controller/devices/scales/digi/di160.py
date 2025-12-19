@@ -1,15 +1,20 @@
-from devices.base import BaseDeviceDriver
+from devices.scales.base import BaseScaleDriver
 from devices.scales.digi.utils import decode_response
+from validators.base import DeviceTypes
 
 
-class DigiDi160(BaseDeviceDriver):
+class DigiDi160(BaseScaleDriver):
     """Класс с реализацией обмена с весами DIGI DI160.
 
     Дефолтные параметры: Частота = 9600, бит = 7, стоп бит = 1, четность = четные
     Возвращают вес в потоке, поэтому команды запроса веса нет
     """
     def __init__(self) -> None:
-        super().__init__(None, decode_response)
+        super().__init__(
+            device_type=DeviceTypes.scales,
+            command=None,
+            decode_response_func=decode_response
+        )
 
 
 weight_service_digi_di160 = DigiDi160()

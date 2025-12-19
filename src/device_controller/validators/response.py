@@ -11,19 +11,24 @@ class ResponseTypes(Enum):
     status = 'status'
 
 
-class ScalesWeightResponse(BaseModel):
-    """Класс для валидации и сериализации блока данных в ответе устройства серверу."""
+class ScalesResponse(BaseModel):
+    """Класс для валидации и сериализации блока данных в ответе весов серверу."""
     weight: float
     stable: bool
     overload: bool
 
 
-class ScalesResponse(BaseModel):
+class PrinterResponse(BaseModel):
+    """Класс для валидации и сериализации блока данных в ответе принтера серверу."""
+    response: str
+
+
+class DeviceResponse(BaseModel):
     """Класс для валидации и сериализации ответов устройства серверу."""
     device: tuple[str, int]
     ok: bool
     type: ResponseTypes
-    data: ScalesWeightResponse | None = None
+    data: ScalesResponse | PrinterResponse | None = None
     message: str | None = None
 
 
@@ -32,7 +37,7 @@ class ServerResponse(BaseModel):
     device: tuple[str, int]
     ok: bool
     type: ResponseTypes
-    data: ScalesWeightResponse | None = None
+    data: ScalesResponse | PrinterResponse | None = None
     message: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
