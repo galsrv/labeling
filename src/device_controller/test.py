@@ -26,6 +26,7 @@ data = (
     "1Y00" + "000" + "05000500" + "vilka<CR>"
     "E<CR>"
 )
+
 COMMAND = build_dpl_unicode_label(data)
 
 # COMMAND = build_dpl_ttf_upload_commands('devices/printers/fonts/roboto.ttf', '77')

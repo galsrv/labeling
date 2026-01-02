@@ -1,6 +1,6 @@
 import random
 
-from validators.response import ScalesWeightResponse
+from validators.response import ScalesResponse
 
 
 def _crc_step(b_input: int, b_crc: int) -> int:
@@ -40,7 +40,7 @@ def _compute_crc(data: bytes, as_hex: bool = False) -> str | int:
     return f'{crc:02X}' if as_hex else crc
 
 
-def decode_response(data: bytes) -> ScalesWeightResponse | None:
+def decode_response(data: bytes) -> ScalesResponse | None:
     """Разбираем полученный от весов поток.
 
     Возвращаем кортеж (вес_брутто, флаг стабильного веса, флаг перегруза),
@@ -89,7 +89,7 @@ def decode_response(data: bytes) -> ScalesWeightResponse | None:
 
         weight = sign * (raw / (10 ** decimal_pos))
 
-        return ScalesWeightResponse(weight=weight, stable=stable, overload=overload)
+        return ScalesResponse(weight=weight, stable=stable, overload=overload)
 
     except Exception:
         return None

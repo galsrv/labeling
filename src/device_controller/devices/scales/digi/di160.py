@@ -1,6 +1,5 @@
 from devices.scales.base import BaseScaleDriver
 from devices.scales.digi.utils import decode_response
-from validators.base import DeviceTypes
 
 
 class DigiDi160(BaseScaleDriver):
@@ -11,7 +10,6 @@ class DigiDi160(BaseScaleDriver):
     """
     def __init__(self) -> None:
         super().__init__(
-            device_type=DeviceTypes.scales,
             command=None,
             decode_response_func=decode_response
         )

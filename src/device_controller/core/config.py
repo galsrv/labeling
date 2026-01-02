@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     WAIT_FOR_DEVICE_RESPONSE_TIMEOUT: int = 2
     DEVICE_RESPONSE_SIZE_BYTES: int = 20
 
+    DEVICE_PORT_MIN: int = 1024
+    DEVICE_PORT_MAX: int = 65535
+
     DEVICE_POLL_INTERVAL: int = 1
     MIN_WEIGHT: float = 0.1
 

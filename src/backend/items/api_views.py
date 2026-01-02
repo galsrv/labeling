@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_async_session
 from items.schemas import ItemReadSchema
-from items.service import items_service
+from items.service import api_items_service
 
 items_router = APIRouter()
 
@@ -14,8 +14,8 @@ async def get_items(
     session: AsyncSession = Depends(get_async_session)
 ) -> list[ItemReadSchema]:
     """Эндпоинт получения всех продуктов."""
-    items = await items_service.get_all_items(session)
-    return items  # pyright: ignore[reportReturnType]
+    items = await api_items_service.get_all(session)
+    return items
 
 
 @items_router.get(
@@ -25,5 +25,5 @@ async def get_item(
     session: AsyncSession = Depends(get_async_session)
 ) -> ItemReadSchema:
     """Эндпоинт получения продукта."""
-    item = await items_service.get_item(session, item_id)
-    return item  # pyright: ignore[reportReturnType]
+    item = await api_items_service.get(session, item_id)
+    return item

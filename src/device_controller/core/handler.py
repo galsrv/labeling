@@ -31,7 +31,7 @@ class WebsocketsHandler:
         return await handler(websocket, request)
 
     async def mode_not_found(self, websocket: ServerConnection, request: ClientRequest) -> None:
-        """Реагируем на неверную команду."""
+        """Реагируем на неверный метод работы."""
         await self.send_message(websocket, ServerResponse(device=request.device_socket, ok=False, type=ResponseTypes.error, data=None, message=s.ERROR_UNKNOWN_COMMNAD))
 
     async def send_message(self, websocket: ServerConnection, response: ServerResponse) -> None:
@@ -91,7 +91,7 @@ class WebsocketsHandler:
         if not await self.is_device_available(websocket, request):
             return
 
-        await request.driver.send(request.ip.compressed, request.port, websocket.id, request.dpl_command)
+        await request.driver.send(request.ip.compressed, request.port, websocket.id, request.print_command)
 
         await self.send_message(websocket, ServerResponse(device=request.device_socket, ok=True, type=ResponseTypes.info, data=None, message=s.MESSAGE_COMMAND_SENT))
         logger.info(f'<{websocket.id}> ✅  Команда отправлена на устройство {request.device_socket}')

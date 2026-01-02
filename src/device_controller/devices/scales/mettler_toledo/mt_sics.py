@@ -1,6 +1,5 @@
 from devices.scales.base import BaseScaleDriver
 from devices.scales.mettler_toledo.utils import decode_response
-from validators.base import DeviceTypes
 
 get_gross_weight_command = b'S\r\n'
 get_immediate_weight_command = b'SI\r\n'
@@ -16,7 +15,6 @@ class MtSics(BaseScaleDriver):
     """
     def __init__(self) -> None:
         super().__init__(
-            device_type=DeviceTypes.scales,
             command=get_gross_weight_command,
             decode_response_func=decode_response
         )

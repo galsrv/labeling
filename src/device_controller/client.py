@@ -7,15 +7,28 @@ from websockets.exceptions import ConnectionClosed
 from websockets.asyncio.client import connect
 
 from core.log import logger
-from validators.request import Commands
+from validators.base import Modes
 
 uri = "ws://127.0.0.1:8000"
+
+data = (
+    "<STX>yUUC<CR>"
+    "<STX>L<CR>"
+    "4911u6601000100P015P009Тестовый текст шрифтом Oswald: абвгдеёжзикл...уфцчщьъэюя123()_\"\"<CR>"
+    "4911u7701000200P015P009Тестовый EAN13:<CR>"
+    "4F00" + "070" + "01000350" + "012345678901<CR>"
+    "4911u7705000200P015P009Тестовый GS1 DataMatrix:<CR>"
+    "4W1c00" + "000" + "05000400" + "2000" + "000000" + "<FNC1>" + "0104603934000793215?ZjQDTZ4NBNy<GS>93zFAP<CR>"
+    "4911u5501000500P015P009Тестовая картинка:<CR>"
+    "1Y00" + "000" + "05000500" + "vilka<CR>"
+    "E<CR>"
+)
 
 
 class Client:
     """Вебсокет-клиент для теста оборудования.
 
-    Запуск python client.py <команда> <ip_весов> <порт_весов> <драйвер>
+    Запуск python client.py <команда> <ip_устройства> <порт_устройства> <драйвер>
 
                     << STREAM >>
         Тензо-М ТВ020           python client.py stream 192.168.90.100 33310 tenzo_m
@@ -35,11 +48,16 @@ class Client:
         DIGI DI-160             python client.py status 192.168.238.51 4004 digi_di160
         Симулятор               python client.py status 127.0.0.1 9999 tenzo_m
 
+                    << SEND >>
+        Datamax I4212-e         python client.py send 192.168.90.3 9100 dpl
     """
-    async def __exchange(self, host: str, port: str, driver: str, command: str, stop: bool = False, responses_to_wait: int = 1) -> None:
+    async def __exchange(self, host: str, port: str, driver: str, mode: str, stop: bool = False, responses_to_wait: int = 1) -> None:
         """Базовый метод для отправки запросов серверу и получения ответов."""
-        start_command = {'command': command, 'ip': host, 'port': port, 'driver': driver}
-        stop_command = {'command': 'stop', 'ip': host, 'port': port, 'driver': driver}
+        start_command = {'mode': mode, 'ip': host, 'port': port, 'driver': driver}
+        stop_command = {'mode': 'stop', 'ip': host, 'port': port, 'driver': driver}
+
+        if mode == 'send':
+            start_command['print_command'] = data
 
         async with connect(uri) as websocket:
             try:
@@ -76,15 +94,19 @@ class Client:
 
     async def stream(self, host: str, port: str, driver: str) -> None:
         """Обработчик команды STREAM."""
-        await self.__exchange(host, port, driver, command='stream', stop=True, responses_to_wait=10)
+        await self.__exchange(host, port, driver, mode='stream', stop=True, responses_to_wait=10)
 
     async def get(self, host: str, port: str, driver: str) -> None:
         """Обработчик команды GET."""
-        await self.__exchange(host, port, driver, command='get', stop=False, responses_to_wait=3)
+        await self.__exchange(host, port, driver, mode='get', stop=False, responses_to_wait=3)
 
     async def status(self, host: str, port: str, driver: str) -> None:
         """Обработчик команды STATUS."""
-        await self.__exchange(host, port, driver, command='status', stop=False, responses_to_wait=1)
+        await self.__exchange(host, port, driver, mode='status', stop=False, responses_to_wait=1)
+
+    async def send(self, host: str, port: str, driver: str) -> None:
+        """Обработчик команды SEND."""
+        await self.__exchange(host, port, driver, mode='send', stop=False, responses_to_wait=1)
 
 
 client = Client()
@@ -92,20 +114,20 @@ client = Client()
 
 if __name__ == "__main__":
     if len(sys.argv) != 5:
-        print("❌ Использование: python client.py <command> <ip> <port> <driver>")
+        print("❌ Использование: python client.py <mode> <ip> <port> <driver>")
         sys.exit(1)
 
-    command, host, port, driver = sys.argv[1:5]
+    mode, host, port, driver = sys.argv[1:5]
 
-    if command not in Commands:
-        print(f'❌ Неизвестная команда {command}')
+    if mode not in Modes:
+        print(f'❌ Неизвестный режим работы: {mode}')
         sys.exit(1)
 
     try:
-        handler: Callable = getattr(client, command, None)
+        handler: Callable = getattr(client, mode, None)
 
         if handler is None:
-            print(f'❌ Класс Client не имеет метода {command}')
+            print(f'❌ Класс Client не имеет метода {mode}')
             sys.exit(1)
 
         asyncio.run(handler(host, port, driver))

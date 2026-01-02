@@ -1,7 +1,7 @@
-from validators.response import ScalesWeightResponse
+from validators.response import ScalesResponse
 
 
-def decode_response(data: bytes) -> ScalesWeightResponse | None:
+def decode_response(data: bytes) -> ScalesResponse | None:
     r"""Parse DIGI DI-160 ASCII streaming frame.
 
     Typical incoming payload:
@@ -34,7 +34,7 @@ def decode_response(data: bytes) -> ScalesWeightResponse | None:
         stable = True
         overload = False
 
-        return ScalesWeightResponse(
+        return ScalesResponse(
             weight=weight,
             stable=stable,
             overload=overload,

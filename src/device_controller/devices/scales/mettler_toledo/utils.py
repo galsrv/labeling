@@ -1,6 +1,6 @@
 import re
 
-from validators.response import ScalesWeightResponse
+from validators.response import ScalesResponse
 
 _MT_SICS_PATTERN = re.compile(
     rb"^\s*([A-Z]{1,3})\s+([A-Z])\s+([+-]?\s*\d*\.?\d+)\s*([a-zA-Z]+)\s*$"
@@ -11,7 +11,7 @@ _MT_SICS_PATTERN = re.compile(
 # b"T I      0.000 kg"
 
 
-def decode_response(data: bytes) -> ScalesWeightResponse | None:
+def decode_response(data: bytes) -> ScalesResponse | None:
     """Parse MT-SICS (Mettler-Toledo IND226) weight response.
 
     Expected format:
@@ -53,7 +53,7 @@ def decode_response(data: bytes) -> ScalesWeightResponse | None:
         else:
             return None  # Unknown status → treat as invalid frame
 
-        return ScalesWeightResponse(
+        return ScalesResponse(
             weight=value,
             stable=stable,
             overload=overload

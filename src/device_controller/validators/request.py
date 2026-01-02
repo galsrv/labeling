@@ -1,6 +1,7 @@
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from pydantic.networks import IPvAnyAddress
 
+from core.config import settings as s
 from devices.base import BaseDeviceDriver
 from devices.drivers import get_driver
 from validators.base import Modes
@@ -10,9 +11,9 @@ class ClientRequest(BaseModel):
     """Класс для валидации и сериализации запросов от клиента."""
     mode: Modes
     ip: IPvAnyAddress
-    port: int = Field(ge=1024, le=65535)
+    port: int = Field(ge=s.DEVICE_PORT_MIN, le=s.DEVICE_PORT_MAX)
     driver: BaseDeviceDriver
-    dpl_command: str | None = None
+    print_command: str | None = None
 
     @field_validator('driver', mode='before')
     @classmethod

@@ -1,38 +1,39 @@
-from fastapi import HTTPException, status
+from typing import TypeVar
+
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.base_service import BaseService
 from core.config import settings as s
-from items.models import ItemsOrm
+from core.exceptions import ObjectNotFound
+from items.repository import items_repo
+from items.schemas import ItemReadSchema, ItemWebSchema
+
+T = TypeVar('T', bound=BaseModel)
 
 
-class ItemsService(BaseService):
-    """Класс сервисных функций модели."""
-    def __init__(self) -> None:
-        super().__init__(ItemsOrm)
+class ItemsService:
+    """Сервисный слой для продуктов."""
+    def __init__(self, read_model: type[BaseModel]) -> None:
+        """Инициализация объекта класса."""
+        self.read_model = read_model
 
-    async def get_all_items(
-        self,
-        session: AsyncSession,
-    ) -> list[ItemsOrm]:
-        """Получаем все продукты."""
-        items = await self.get_all(session)
-        return items
+    async def get_all(self, session: AsyncSession) -> list[T]:
+        """Возвращаем из БД все продукты."""
+        items = await items_repo.get_all(session)
+        items_dto = [self.read_model.model_validate(item) for item in items]
+        return items_dto
 
-    async def get_item(
-        self,
-        session: AsyncSession,
-        item_id: int,
-    ) -> ItemsOrm:
-        """Получаем продукт."""
-        item: ItemsOrm | None = await self.get(session, item_id)
+    async def get(self, session: AsyncSession, item_id: int) -> T:
+        """Возвращаем из БД продукт по его id."""
+        item = await items_repo.get(session, item_id)
 
         if item is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=s.ERROR_MESSAGE_ENTRY_DOESNT_EXIST)
+            raise ObjectNotFound(s.ERROR_MESSAGE_ENTRY_DOESNT_EXIST)
 
-        return item
+        item_dto = self.read_model.model_validate(item)
+        return item_dto
 
 
-items_service = ItemsService()
+api_items_service = ItemsService(read_model=ItemReadSchema)
+
+web_items_service = ItemsService(read_model=ItemWebSchema)

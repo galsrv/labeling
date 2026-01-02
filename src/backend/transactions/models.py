@@ -1,18 +1,19 @@
 from datetime import date
 from enum import Enum
 
-from sqlalchemy import CheckConstraint, Date, Float, ForeignKey, Integer, Enum as SQLEnum, text
+from sqlalchemy import CheckConstraint, Date, Float, ForeignKey, Integer, Enum as SQLEnum, String, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from core.config import settings as s
 from core.database import AppBaseClass
 from items.models import ItemsOrm
 
 
 class OrderStatus(Enum):
     """Возможные статусы заказа на производство."""
-    CREATED = 'CREATED'
-    ACTIVE = 'ACTIVE'
-    CLOSED = 'CLOSED'
+    CREATED = 'Создан'
+    ACTIVE = 'Активен'
+    CLOSED = 'Закрыт'
 
 
 class OrderOrm(AppBaseClass):
@@ -43,3 +44,11 @@ class OrderOrm(AppBaseClass):
     )
 
     __order_by__ = (id, )
+
+
+class ProcessOrm(AppBaseClass):
+    """Модель процессов маркировки."""
+    __tablename__ = 'processes'
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(s.PROCESS_NAME_MAX_LENGTH), nullable=False)

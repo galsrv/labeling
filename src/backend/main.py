@@ -2,7 +2,8 @@ import uvicorn
 from fastapi import FastAPI
 
 from core.config import settings as s
-from core.routers import main_router
+from core.exceptions import register_exception_handlers
+from core.routers import api_router, web_router
 
 fastapi_app = FastAPI(
     title=s.APP_TITLE,
@@ -11,7 +12,10 @@ fastapi_app = FastAPI(
     redoc_url=s.REDOC_URL
 )
 
-fastapi_app.include_router(main_router)
+fastapi_app.include_router(api_router)
+fastapi_app.include_router(web_router)
+
+register_exception_handlers(fastapi_app)
 
 if __name__ == '__main__':
     uvicorn.run(

@@ -1,6 +1,7 @@
 import os
 
 from dotenv import load_dotenv
+from fastapi.templating import Jinja2Templates
 from pydantic_settings import BaseSettings
 
 dotenv_path = os.path.join(os.path.dirname(__file__), '../../../infra/.env')
@@ -37,11 +38,22 @@ class Settings(BaseSettings):
 
     DRIVER_NAME_MAX_LENGTH: int = 20
 
-    SCALES_PORT_MIN: int = 1024
-    SCALES_PORT_MAX: int = 65535
-    SCALES_DESCRIPTION_MAX_LENGTH: int = 255
+    DEVICE_PORT_MIN: int = 1024
+    DEVICE_PORT_MAX: int = 65535
+    DEVICE_DESCRIPTION_MAX_LENGTH: int = 255
+
+    LABEL_TEMPLATE_NAME_MAX_LENGTH: int = 100
+    LABEL_TEMPLATE_COMMAND_MAX_LENGTH: int = 100
+
+    PROCESS_NAME_MAX_LENGTH: int = 100
 
     ERROR_MESSAGE_ENTRY_DOESNT_EXIST: str = 'Запрошенная запись не существует'
 
+    WEB_URL_PREFIX: str = '/web'
+    WEB_TEMPLATE_DIR_PATH: str = 'static/templates'
+
 
 settings = Settings()
+
+
+templates = Jinja2Templates(directory=settings.WEB_TEMPLATE_DIR_PATH)

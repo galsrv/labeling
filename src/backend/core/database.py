@@ -1,4 +1,5 @@
-from typing import AsyncGenerator
+from typing import AsyncGenerator, Protocol
+
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import declarative_base
 
@@ -11,6 +12,14 @@ class PreBase:
 
 
 AppBaseClass = declarative_base(cls=PreBase)
+
+
+class ORMBase(Protocol):
+    """Базовый класс для корректной проверки типов."""
+    id: int
+
+    __order_by__ = (id, )
+
 
 engine = create_async_engine(
     url=s.DATABASE_URL, echo=False if s.PROD_ENVIRONMENT else True

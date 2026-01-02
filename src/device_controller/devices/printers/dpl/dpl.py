@@ -1,6 +1,6 @@
-from validators.base import DeviceTypes
 from devices.printers.base import BasePrinterDriver
 from devices.printers.dpl.control_codes import get_control_codes
+from devices.printers.dpl.send_label import build_dpl_unicode_label
 from devices.printers.dpl.utils import decode_response
 
 stx_byte, soh_byte, cr_byte, esc_byte, fnc1_bytes, gs_byte = get_control_codes().values()
@@ -19,9 +19,9 @@ class Dpl(BasePrinterDriver):
     """Класс с реализацией DPL команд для принтера."""
     def __init__(self) -> None:
         super().__init__(
-            device_type=DeviceTypes.printer,
             command=None,
-            decode_response_func=decode_response
+            decode_response_func=decode_response,
+            encode_print_command_func=build_dpl_unicode_label,
         )
 
     def print_quality_label(self) -> None:

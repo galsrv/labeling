@@ -14,3 +14,15 @@ class Modes(Enum):
     get = 'get'
     stop = 'stop'
     status = 'status'
+
+
+class SendMode():
+    """Класс режима отправки команд без получения ответа."""
+    sending_request = True
+    awaiting_response = False
+
+
+class StreamMode():
+    """Класс режима отправки команд без получения ответа."""
+    sending_request = True
+    awaiting_response = False

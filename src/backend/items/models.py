@@ -1,8 +1,9 @@
-from sqlalchemy import CheckConstraint, Integer, BigInteger, String, Boolean, Float
+from sqlalchemy import CheckConstraint, ForeignKey, Integer, BigInteger, String, Boolean, Float
 from sqlalchemy.orm import Mapped, mapped_column
 
 from core.config import settings as s
 from core.database import AppBaseClass
+from labels.models import LabelTemplate
 
 
 class ItemsOrm(AppBaseClass):
@@ -21,6 +22,7 @@ class ItemsOrm(AppBaseClass):
     shelf_life: Mapped[int] = mapped_column(Integer, nullable=False)
     units_per_box: Mapped[int] = mapped_column(Integer, nullable=False)
     tare_weight: Mapped[float] = mapped_column(Float, nullable=False)
+    item_label_template_id: Mapped[int] = mapped_column(Integer, ForeignKey(LabelTemplate.id, ondelete='SET NULL'), nullable=True)
 
     __table_args__ = (
         CheckConstraint(gtin >= s.ITEM_GTIN_MIN_VALUE, name='check_gtin_min'),

@@ -1,18 +1,26 @@
-from typing import Any
+from typing import TypeVar
 
 from loguru import logger
 from pydantic import BaseModel
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from core.database import ORMBase
 
-class BaseService:
-    """Базовый класс сервисных методов обращения в БД."""
-    def __init__(self, model) -> None:  # noqa: ANN001
+# Класс для проверки типов
+TOrm = TypeVar("TOrm", bound=ORMBase)
+
+
+class BaseRepository:
+    """Базовый класс методов обращения в БД.
+
+    Не стал делать наследование BaseRepository(Generic[TOrm]) - нужно разобраться в этой логике.
+    """
+    def __init__(self, model: type[TOrm]) -> None:
         """Инициализация объекта класса."""
         self.model = model
 
-    async def get(self, session: AsyncSession, obj_id: int) -> Any | None:
+    async def get(self, session: AsyncSession, obj_id: int) -> TOrm | None:
         """Функция чтения единичной записи таблицы."""
         query = select(self.model).where(self.model.id == obj_id)
         db_obj = await session.execute(query)
@@ -22,15 +30,15 @@ class BaseService:
         logger.debug(f'Entry retrieve: model={self.model.__name__}, id={obj_id}, result={success}')
         return db_obj
 
-    async def get_all(self, session: AsyncSession) -> list:
+    async def get_all(self, session: AsyncSession) -> list[TOrm]:
         """Метод чтения всех записей таблицы."""
         query = select(self.model).order_by(*self.model.__order_by__)
         result = await session.execute(query)
         result = result.scalars().all()
         logger.debug(f'Entry retrieve: model={self.model.__name__}, {len(result)} entries retrieved')
-        return result  # pyright: ignore[reportReturnType]
+        return result
 
-    async def create(self, session: AsyncSession, data_input: BaseModel):  # noqa: ANN201
+    async def create(self, session: AsyncSession, data_input: BaseModel) -> TOrm:
         """Метод создания новой записи в таблице."""
         new_db_obj = self.model(**data_input.model_dump())
         session.add(new_db_obj)
@@ -39,7 +47,7 @@ class BaseService:
         logger.debug(f'Entry creation: model={new_db_obj.__class__.__name__}, id={new_db_obj.id}')
         return new_db_obj
 
-    async def update(self, session: AsyncSession, db_obj, data_input: BaseModel):  # noqa: ANN001, ANN201
+    async def update(self, session: AsyncSession, db_obj: TOrm, data_input: BaseModel) -> TOrm:
         """Метод изменения существующей записи таблицы."""
         data_input_dict: dict = data_input.model_dump(exclude_none=True)
         [setattr(db_obj, k, v) for k, v in data_input_dict.items()]
