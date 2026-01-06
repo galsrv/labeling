@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, computed_field
 
 
 class ItemReadSchema(BaseModel):
@@ -35,3 +35,9 @@ class ItemWebSchema(BaseModel):
     units_per_box: int
 
     model_config = ConfigDict(from_attributes=True)
+
+    @computed_field
+    @property
+    def nominal_weight_str(self) -> str:
+        """Номинальный вес с тремя знаками после запятой."""
+        return f"{(self.nominal_weight or 0):.3f}"

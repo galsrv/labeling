@@ -10,10 +10,10 @@ from items.models import ItemsOrm
 
 
 class OrderStatus(Enum):
-    """Возможные статусы заказа на производство."""
-    CREATED = 'Создан'
-    ACTIVE = 'Активен'
-    CLOSED = 'Закрыт'
+    """Возможные статусы задания на производство."""
+    CREATED = 'Создано'
+    ACTIVE = 'Активно'
+    CLOSED = 'Закрыто'
 
 
 class OrderOrm(AppBaseClass):

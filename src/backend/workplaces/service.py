@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import settings as s
 from core.exceptions import ObjectNotFound
-from workplaces.repository import drivers_repo, scales_repo, printers_repo, workplaces_repo
+from workplaces.repository import drivers_repo, scales_repo, printers_repo, workplaces_repo, DriverType
 from workplaces.schemas import (
     DeviceDriversReadSchema,
     DeviceDriversWebSchema,
@@ -31,6 +31,12 @@ class DriversService:
         drivers = await drivers_repo.get_all(session)
         drivers_dto = [self.read_model.model_validate(driver) for driver in drivers]
         return drivers_dto
+
+    async def get_by_type(self, session: AsyncSession, driver_type: DriverType) -> list[T]:
+        """Получаем драйверы определенного типа."""
+        drivers_by_type = await drivers_repo.get_by_type(session, driver_type)
+        drivers_by_type_dto = [self.read_model.model_validate(driver) for driver in drivers_by_type]
+        return drivers_by_type_dto
 
     async def get(self, session: AsyncSession, driver_id: int) -> T:
         """Возвращаем из БД драйвер по его id."""

@@ -6,7 +6,7 @@ from core.database import AppBaseClass
 from workplaces.models import DeviceDriversOrm
 
 
-class LabelTemplate(AppBaseClass):
+class LabelTemplateORM(AppBaseClass):
     """Модель справочника шаблонов этикеток."""
     __tablename__ = 'label_templates'
 

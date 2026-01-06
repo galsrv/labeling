@@ -2,7 +2,7 @@ from typing import TypeVar
 
 from loguru import logger
 from pydantic import BaseModel
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import ORMBase
@@ -38,7 +38,7 @@ class BaseRepository:
         logger.debug(f'Entry retrieve: model={self.model.__name__}, {len(result)} entries retrieved')
         return result
 
-    async def create(self, session: AsyncSession, data_input: BaseModel) -> TOrm:
+    async def create_(self, session: AsyncSession, data_input: BaseModel) -> TOrm:
         """Метод создания новой записи в таблице."""
         new_db_obj = self.model(**data_input.model_dump())
         session.add(new_db_obj)
@@ -47,7 +47,16 @@ class BaseRepository:
         logger.debug(f'Entry creation: model={new_db_obj.__class__.__name__}, id={new_db_obj.id}')
         return new_db_obj
 
-    async def update(self, session: AsyncSession, db_obj: TOrm, data_input: BaseModel) -> TOrm:
+    async def create(self, session: AsyncSession, data_input: BaseModel) -> int:
+        """Метод создания новой записи в таблице."""
+        new_db_obj = self.model(**data_input.model_dump())
+        session.add(new_db_obj)
+        await session.commit()
+        await session.refresh(new_db_obj)
+        logger.debug(f'Entry creation: model={new_db_obj.__class__.__name__}, id={new_db_obj.id}')
+        return new_db_obj.id
+
+    async def update_(self, session: AsyncSession, db_obj: TOrm, data_input: BaseModel) -> TOrm:
         """Метод изменения существующей записи таблицы."""
         data_input_dict: dict = data_input.model_dump(exclude_none=True)
         [setattr(db_obj, k, v) for k, v in data_input_dict.items()]
@@ -58,6 +67,20 @@ class BaseRepository:
         logger.debug(
             f'Entry update: model={db_obj.__class__.__name__}, id={db_obj.id}')
         return db_obj
+
+    async def update(self, session: AsyncSession, obj_id: int, data_input: BaseModel) -> TOrm:
+        """Метод изменения существующей записи таблицы, на вход поступает DTO."""
+        data_input_dict: dict = data_input.model_dump(exclude_none=True)
+        stmt = (
+            update(self.model)
+            .where(self.model.id == obj_id)
+            .values(**data_input_dict)
+        )
+
+        await session.execute(stmt)
+        await session.commit()
+        logger.debug(
+            f'Entry update: model={self.model.__class__.__name__}, id={obj_id}')
 
     async def delete(self, session: AsyncSession, obj_id: int) -> None:
         """Удаляем запись из таблицы по ключу."""

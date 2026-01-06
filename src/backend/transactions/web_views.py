@@ -13,6 +13,7 @@ web_orders_router = APIRouter()
         '/',
         response_class=HTMLResponse,
         summary='Список производственных заданий',
+        name='read_orders',
 )
 async def read_orders(
     request: Request,

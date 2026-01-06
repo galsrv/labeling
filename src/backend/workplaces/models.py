@@ -1,9 +1,16 @@
-from sqlalchemy import CheckConstraint, ForeignKey, Integer, String
+from enum import Enum
+from sqlalchemy import CheckConstraint, ForeignKey, Integer, String, Enum as SQLEnum
 from sqlalchemy.dialects.postgresql import INET
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from core.config import settings as s
 from core.database import AppBaseClass
+
+
+class DriverType(Enum):
+    """Возможные типы драйверов устройств."""
+    PRINTER = 'PRINTER'
+    SCALES = 'SCALES'
 
 
 class DeviceDriversOrm(AppBaseClass):
@@ -12,6 +19,8 @@ class DeviceDriversOrm(AppBaseClass):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(s.DRIVER_NAME_MAX_LENGTH), nullable=False, unique=True)
+    type: Mapped[DriverType] = mapped_column(
+        SQLEnum(DriverType, name='device_driver_enum'), default=DriverType.SCALES, nullable=False)
 
     __order_by__ = (id, )
 
