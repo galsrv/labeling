@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     PROD: bool = os.getenv('PROD', 'False').lower() in ('true', '1')
 
     WS_HOST: str = '127.0.0.1'
-    WS_PORT: int = 8000
+    WS_PORT: int = 9000
 
     CONNECT_TO_DEVICE_ATTEMPTS: int = 5
     CONNECT_TO_DEVICE_TIMEOUT: int = 3

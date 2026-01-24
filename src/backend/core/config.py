@@ -30,6 +30,10 @@ class Settings(BaseSettings):
 
     API_URL_PREFIX: str = '/api/v1'
 
+    LOG_FILE_PATH: str = 'logs/log.txt'
+    LOG_NUMBER_OF_FILES_TO_KEEP: int = 5
+    LOG_FILE_MAX_SIZE: str = '1 MB'
+
     ITEM_NAME_MAX_LENGTH: int = 100
     ITEM_INGRIDIENTS_MAX_LENGTH: int = 255
     ITEM_NUTRITION_MAX_LENGTH: int = 255
@@ -51,6 +55,8 @@ class Settings(BaseSettings):
 
     WEB_URL_PREFIX: str = '/web'
     WEB_TEMPLATE_DIR_PATH: str = 'static/templates'
+
+    DEVICE_CONTROLER_URI: str = os.getenv('CONTROLLER_URI', 'ws://127.0.0.1:9000')
 
 
 settings = Settings()

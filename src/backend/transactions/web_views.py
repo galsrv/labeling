@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import templates
 from core.database import get_async_session
+from core.dependencies import logging_dependency
 from transactions.service import web_orders_service
 
 web_orders_router = APIRouter()
@@ -14,6 +15,7 @@ web_orders_router = APIRouter()
         response_class=HTMLResponse,
         summary='Список производственных заданий',
         name='read_orders',
+        dependencies=[Depends(logging_dependency)]
 )
 async def read_orders(
     request: Request,
@@ -31,7 +33,8 @@ async def read_orders(
 @web_orders_router.get(
         '/{order_id}',
         response_class=HTMLResponse,
-        summary='Задание на производство'
+        summary='Задание на производство',
+        dependencies=[Depends(logging_dependency)]
 )
 async def execute_order(
     order_id: int,

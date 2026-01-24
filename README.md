@@ -6,8 +6,7 @@ Stack
 ======
 * Python 3.12
 * Backend - FastAPI & SQLAlchemy & Alembic
-* Frontend - Nicegui
-* Bot - Aiogram
+* Frontend - Jinja2 & Bootstrap
 * Common elements - Pydantic & Pydantic Settings & Loguru
 
 Architecture

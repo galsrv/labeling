@@ -1,4 +1,10 @@
 from enum import Enum
+from typing import Type
+
+from sqlalchemy.inspection import inspect
+
+from core.database import TOrm
+from items.models import ItemsOrm
 
 
 class ControlCodes(Enum):
@@ -26,6 +32,12 @@ def get_control_codes() -> list[str]:
     return [code.value for code in ControlCodes]
 
 
+def __get_column_names(model: Type[TOrm]) -> list[str]:
+    """Возвращаем список имен полей модели."""
+    return [f'{{{model.__tablename__}.{column.key}}}' for column in inspect(model).mapper.column_attrs]
+
+
 def get_label_variables() -> list[str]:
     """Возвращаем список значений переменных."""
-    return [variable.value for variable in LabelVariables]
+    items_variables = __get_column_names(ItemsOrm)
+    return items_variables

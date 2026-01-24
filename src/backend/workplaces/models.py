@@ -36,7 +36,7 @@ class ScalesOrm(AppBaseClass):
     description: Mapped[str] = mapped_column(String(s.DEVICE_DESCRIPTION_MAX_LENGTH), nullable=False)
 
     driver: Mapped[DeviceDriversOrm] = relationship(DeviceDriversOrm, lazy='joined')
-    workplace:  Mapped['WorkplaceOrm'] = relationship('WorkplaceOrm', lazy='joined')
+    # workplace:  Mapped['WorkplaceOrm'] = relationship('WorkplaceOrm', lazy='joined')
 
     __table_args__ = (
         CheckConstraint(port >= s.DEVICE_PORT_MIN, name='check_port_min'),

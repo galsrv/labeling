@@ -18,3 +18,11 @@ class LabelTemplatesCreateUpdateWebSchema(BaseModel):
     name: str
     driver_id: int
     print_command: str
+
+
+class PrintLabelTestPayload(BaseModel):
+    """Модель запроса на печать тестовой этикетки."""
+    print_command: str
+    item_id: int
+    printer_id: int
+    driver_id: int

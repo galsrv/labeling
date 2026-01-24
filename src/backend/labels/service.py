@@ -4,11 +4,20 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import settings as s
+from core.devices_exchange import device_exchange
 from core.exceptions import ObjectNotFound
+from items.service import web_items_service
+from items.schemas import ItemWebSchema
 from labels.repository import label_repo
-from labels.schemas import LabelTemplatesWebSchema, LabelTemplatesCreateUpdateWebSchema
+from labels.schemas import (
+    PrintLabelTestPayload,
+    LabelTemplatesWebSchema,
+    LabelTemplatesCreateUpdateWebSchema
+)
 from labels.variables import get_control_codes, get_label_variables
-from workplaces.service import web_drivers_service, DriverType
+from labels.utils import build_print_command
+from workplaces.schemas import PrintersWebSchema
+from workplaces.service import web_printers_service, web_drivers_service, DriverType
 
 T = TypeVar('T', bound=BaseModel)
 
@@ -19,6 +28,22 @@ class LabelTemplatesService:
         """Инициализация объекта класса."""
         self.read_model = read_model
         self.create_update_model = create_update_model
+
+    async def __get_common_context(self, session: AsyncSession) -> dict:
+        """Получаем общие элементы контекста."""
+        printer_drivers = await web_drivers_service.get_by_type(session, driver_type=DriverType.PRINTER)
+        items = await web_items_service.get_all(session)
+        printers = await web_printers_service.get_all(session)
+        control_codes = get_control_codes()
+        label_variables = get_label_variables()
+
+        return {
+            'drivers': printer_drivers,
+            'control_codes': control_codes,
+            'label_variables': label_variables,
+            'items': items,
+            'printers': printers
+        }
 
     async def get_all(self, session: AsyncSession) -> list[T]:
         """Возвращаем из БД все шаблоны этикеток."""
@@ -34,33 +59,23 @@ class LabelTemplatesService:
             raise ObjectNotFound(s.ERROR_MESSAGE_ENTRY_DOESNT_EXIST)
 
         label_dto = self.read_model.model_validate(label)
-        printer_drivers = await web_drivers_service.get_by_type(session, driver_type=DriverType.PRINTER)
-        control_codes = get_control_codes()
-        label_variables = get_label_variables()
+        context: dict = await self.__get_common_context(session)
 
-        context = {
+        context.update({
             'mode': 'update',
             'label': label_dto,
-            'drivers': printer_drivers,
-            'control_codes': control_codes,
-            'label_variables': label_variables,
-        }
+        })
 
         return context
 
     async def create_form(self, session: AsyncSession) -> dict:
         """Создаем шаблон этикетки."""
-        printer_drivers = await web_drivers_service.get_by_type(session, driver_type=DriverType.PRINTER)
-        control_codes = get_control_codes()
-        label_variables = get_label_variables()
+        context: dict = await self.__get_common_context(session)
 
-        context = {
+        context.update({
             'mode': 'create',
             'label': None,
-            'drivers': printer_drivers,
-            'control_codes': control_codes,
-            'label_variables': label_variables,
-        }
+        })
 
         return context
 
@@ -87,6 +102,18 @@ class LabelTemplatesService:
     async def delete(self, session: AsyncSession, label_id: int) -> None:
         """Удаляем шаблон этикетки, ничего не возвращаем."""
         await label_repo.delete(session, label_id)
+
+    async def print_test_label(self, session: AsyncSession, request_payload: PrintLabelTestPayload) -> dict:
+        """Печатаем тестовую этикетку."""
+        item_dto: ItemWebSchema = await web_items_service.get(session, request_payload.item_id)
+        printer_dto: PrintersWebSchema = await web_printers_service.get(session, request_payload.printer_id)
+
+        command_to_print = build_print_command(request_payload.print_command, {'items': item_dto})
+        await device_exchange.send_print_job(printer_dto.ip, printer_dto.port, printer_dto.driver.name, command_to_print)
+
+        from core.log import logger
+        logger.debug(command_to_print)
+        return {'detail': 'Отправлено в очередь печати'}
 
 
 web_labels_service = LabelTemplatesService(

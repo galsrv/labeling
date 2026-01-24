@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import templates
 from core.database import get_async_session
+from core.dependencies import logging_dependency
 from workplaces.service import web_scales_service, web_printers_service, web_workplaces_service
 
 web_scales_router = APIRouter()
@@ -18,6 +19,7 @@ web_workplaces_router = APIRouter()
         response_class=HTMLResponse,
         summary='Список весов',
         name='web_get_all_scales',
+        dependencies=[Depends(logging_dependency)]
 )
 async def web_get_all_scales(
     request: Request,
@@ -37,6 +39,7 @@ async def web_get_all_scales(
         response_class=HTMLResponse,
         summary='Список принтеров',
         name='web_get_all_printers',
+        dependencies=[Depends(logging_dependency)]
 )
 async def web_get_all_printers(
     request: Request,
@@ -56,6 +59,7 @@ async def web_get_all_printers(
         response_class=HTMLResponse,
         summary='Список рабочих мест',
         name='web_get_all_workplaces',
+        dependencies=[Depends(logging_dependency)]
 )
 async def web_get_all_workplaces(
     request: Request,

@@ -1,14 +1,9 @@
-from typing import TypeVar
-
 from loguru import logger
 from pydantic import BaseModel
 from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.database import ORMBase
-
-# Класс для проверки типов
-TOrm = TypeVar("TOrm", bound=ORMBase)
+from core.database import TOrm
 
 
 class BaseRepository:

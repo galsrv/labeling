@@ -1,4 +1,4 @@
-from typing import AsyncGenerator, Protocol
+from typing import AsyncGenerator, Protocol, TypeVar
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import declarative_base
@@ -19,6 +19,10 @@ class ORMBase(Protocol):
     id: int
 
     __order_by__ = (id, )
+
+
+# Класс для проверки типов
+TOrm = TypeVar("TOrm", bound=ORMBase)
 
 
 engine = create_async_engine(

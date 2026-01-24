@@ -1,12 +1,29 @@
 from fastapi import APIRouter, Depends, Form, Request, status
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import templates
 from core.database import get_async_session
+from core.dependencies import logging_dependency
+from labels.schemas import PrintLabelTestPayload
 from labels.service import web_labels_service
 
 web_labels_router = APIRouter()
+
+
+@web_labels_router.post(
+        '/print_label_test',
+        response_class=JSONResponse,
+        name='web_print_label_test',
+        summary='Печать тестовой этикетки',
+        dependencies=[Depends(logging_dependency)]
+)
+async def web_print_label_test(
+    payload: PrintLabelTestPayload,
+    session: AsyncSession = Depends(get_async_session),
+) -> JSONResponse:
+    """Печатаем тестовую этикетку."""
+    return await web_labels_service.print_test_label(session, payload)
 
 
 @web_labels_router.get(
@@ -14,6 +31,7 @@ web_labels_router = APIRouter()
         response_class=HTMLResponse,
         summary='Список шаблонов этикеток',
         name='web_get_all_labels',
+        dependencies=[Depends(logging_dependency)]
 )
 async def web_get_all_labels(
     request: Request,
@@ -32,7 +50,8 @@ async def web_get_all_labels(
         '/create',
         response_class=HTMLResponse,
         name='web_create_label_form',
-        summary='Создание шаблона этикетки'
+        summary='Создание шаблона этикетки',
+        dependencies=[Depends(logging_dependency)]
 )
 async def web_create_label_form(
     request: Request,
@@ -52,7 +71,8 @@ async def web_create_label_form(
         '/{label_id}',
         response_class=HTMLResponse,
         name='web_update_label_form',
-        summary='Шаблон этикетки'
+        summary='Шаблон этикетки',
+        dependencies=[Depends(logging_dependency)]
 )
 async def web_update_label_form(
     label_id: int,
@@ -73,13 +93,15 @@ async def web_update_label_form(
         '/create',
         response_class=HTMLResponse,
         name='web_create_label',
-        summary='Создание шаблона этикетки'
+        summary='Создание шаблона этикетки',
+        dependencies=[Depends(logging_dependency)]
 )
 async def web_create_label(
     request: Request,
-    name: str = Form(...),
-    driver_id: int = Form(...),
-    print_command: str = Form(''),
+    name: str = Form(),
+    driver_id: int = Form(),
+    print_command: str = Form(),
+    # Можно переделать три поля на data: LabelTemplatesCreateUpdateWebSchema = Form()
     session: AsyncSession = Depends(get_async_session),
 ) -> HTMLResponse:
     """Сохраняем изменения шаблона этикетки."""
@@ -95,7 +117,8 @@ async def web_create_label(
         '/{label_id}/delete',
         response_class=HTMLResponse,
         name='web_delete_label',
-        summary='Удаление шаблона этикетки'
+        summary='Удаление шаблона этикетки',
+        dependencies=[Depends(logging_dependency)]
 )
 async def web_delete_label(
     label_id: int,
@@ -115,14 +138,15 @@ async def web_delete_label(
         '/{label_id}',
         response_class=HTMLResponse,
         name='web_update_label',
-        summary='Редактирование шаблона этикетки'
+        summary='Редактирование шаблона этикетки',
+        dependencies=[Depends(logging_dependency)]
 )
 async def web_update_label(
     label_id: int,
     request: Request,
-    name: str = Form(...),
-    driver_id: int = Form(...),
-    print_command: str = Form(''),
+    name: str = Form(),
+    driver_id: int = Form(),
+    print_command: str = Form(),
     session: AsyncSession = Depends(get_async_session),
 ) -> HTMLResponse:
     """Сохраняем изменения шаблона этикетки."""
