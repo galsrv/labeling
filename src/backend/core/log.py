@@ -6,7 +6,7 @@ from core.config import settings as s
 
 class L(str, Enum):
     """Дополнительные уровни логирования."""
-    WEBSOCKETS = 'WEBSOCKETS'
+    DEVICES = 'DEVICES'
 
 
 # Добавляем сохранение логов в файл
@@ -17,4 +17,4 @@ logger.add(
 )
 
 # Дополнительный уровень логов  для обмена с оборудованием, для визуального выделения
-logger.level('WEBSOCKETS', no=15, color='<yellow>')
+logger.level('DEVICES', no=15, color='<yellow>')

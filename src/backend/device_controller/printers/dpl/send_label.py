@@ -1,4 +1,4 @@
-from devices.printers.dpl.control_codes import get_control_codes
+from device_controller.printers.dpl.control_codes import get_control_codes
 
 
 def build_dpl_unicode_label(data: str, control_codes: int = 0) -> bytes:  # noqa: C901
@@ -32,6 +32,11 @@ def build_dpl_unicode_label(data: str, control_codes: int = 0) -> bytes:  # noqa
         "<FNC1>": bytes(fnc1_bytes),
         "<GS>": bytes([gs_byte]),
     }
+
+    # В исходной строке для удобства могут быть переносы строки.
+    # В отправке на принтер их быть не должно
+    data = data.replace('\n', '')
+    data = data.replace('_', '')
 
     def encode_unicode_hex(text: str) -> bytes:
         # 4 hex digits per character (BMP). Works for Cyrillic.

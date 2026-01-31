@@ -7,7 +7,7 @@ from typing import Optional, Tuple
 
 from PIL import Image, ImageOps
 
-from devices.printers.dpl.control_codes import get_control_codes
+from device_controller.printers.dpl.control_codes import get_control_codes
 
 
 def convert_raster_to_monochrome_bmp_bytes(

@@ -1,15 +1,19 @@
 from fastapi import APIRouter
 
 from core.config import settings as s
+from drivers.api_views import drivers_router
 from items.api_views import items_router
 from frontend.views import web_root_router
+from printers.api_views import printers_router
 from transactions.api_views import api_orders_router
-from workplaces.api_views import drivers_router, scales_router, printers_router, workplace_router
+from workplaces.api_views import scales_router, workplace_router
 
 from items.web_views import web_items_router
 from labels.web_views import web_labels_router
+from printers.web_views import web_printers_router
+from scales.web_views import web_scales_router
 from transactions.web_views import web_orders_router
-from workplaces.web_views import web_scales_router, web_printers_router, web_workplaces_router
+from workplaces.web_views import web_workplaces_router
 
 api_router = APIRouter(prefix=s.API_URL_PREFIX)
 

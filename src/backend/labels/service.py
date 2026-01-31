@@ -4,8 +4,12 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import settings as s
-from core.devices_exchange import device_exchange
 from core.exceptions import ObjectNotFound
+
+from device_controller.drivers import get_printer_driver
+from device_controller.printers.printers_base import BasePrinterDriver
+from device_controller.validators import DeviceResponse
+
 from items.service import web_items_service
 from items.schemas import ItemWebSchema
 from labels.repository import label_repo
@@ -16,8 +20,8 @@ from labels.schemas import (
 )
 from labels.variables import get_control_codes, get_label_variables
 from labels.utils import build_print_command
-from workplaces.schemas import PrintersWebSchema
-from workplaces.service import web_printers_service, web_drivers_service, DriverType
+from printers.schemas import PrintersWebSchema
+from printers.service import web_printers_service, web_drivers_service, DriverType
 
 T = TypeVar('T', bound=BaseModel)
 
@@ -109,11 +113,14 @@ class LabelTemplatesService:
         printer_dto: PrintersWebSchema = await web_printers_service.get(session, request_payload.printer_id)
 
         command_to_print = build_print_command(request_payload.print_command, {'items': item_dto})
-        await device_exchange.send_print_job(printer_dto.ip, printer_dto.port, printer_dto.driver.name, command_to_print)
+        driver: BasePrinterDriver | None = get_printer_driver(printer_dto.driver.name)
 
-        from core.log import logger
-        logger.debug(command_to_print)
-        return {'detail': 'Отправлено в очередь печати'}
+        if not driver:
+            return {'detail': s.MESSAGE_DRIVER_NOT_FOUND}
+
+        response: DeviceResponse = await driver.print_label(printer_dto.ip.compressed, printer_dto.port, command_to_print)
+
+        return {'detail': response.message}
 
 
 web_labels_service = LabelTemplatesService(

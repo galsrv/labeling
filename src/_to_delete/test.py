@@ -4,7 +4,7 @@ from devices.printers.dpl.send_label import build_dpl_unicode_label  # noqa: F40
 from devices.printers.dpl.upload_font import build_dpl_ttf_upload_commands  # noqa: F401
 from devices.printers.dpl.upload_image import build_dpl_image_upload_commands  # noqa: F401
 
-IP = '192.168.90.36'
+IP = '192.168.90.3'
 PORT = 9100
 TIMEOUT = 3.0
 
@@ -24,6 +24,14 @@ data = (
     "4W1c00" + "000" + "05000400" + "2000" + "000000" + "<FNC1>" + "0104603934000793215?ZjQDTZ4NBNy<GS>93zFAP<CR>"
     "4911u5501000500P015P009Тестовая картинка:<CR>"
     "1Y00" + "000" + "05000500" + "vilka<CR>"
+    "E<CR>"
+)
+data = (
+    "<STX>yUUC<CR>\n"
+    "<STX>L<CR>"
+    "4911u6601000100P015P009Состав: Oswald:111 True<CR>\n"
+    "4911u6601000200P015P009ингредиент 1, Oswald:111 4611223344556<CR>"
+    "4911u6601000300P015P009ингредиент 2, ингредиент 3 Oswald:111 4<CR>"
     "E<CR>"
 )
 

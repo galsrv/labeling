@@ -51,12 +51,32 @@ class Settings(BaseSettings):
 
     PROCESS_NAME_MAX_LENGTH: int = 100
 
+    PRINTER_MAX_FONT_IMAGE_FILE_SIZE_BYTES: int = 500_000  # 500 Kb
+
     ERROR_MESSAGE_ENTRY_DOESNT_EXIST: str = 'Запрошенная запись не существует'
+    MESSAGE_SAVE_DATA_ERROR: str = 'Ошибка сохрания записи. Проверьте введенные данные'
+    MESSAGE_METHOD_NOT_IMPLEMENTED: str = 'Метод не реализован для данного драйвера'
+    MESSAGE_WRONG_FONT_ID: str = 'Неверно указан код шрифта для принтера'
+    MESSAGE_WRONG_FILESIZE: str = 'Некорректный размер файла'
+    MESSAGE_WRONG_FILETYPE: str = 'Некорректный тип файла'
 
     WEB_URL_PREFIX: str = '/web'
     WEB_TEMPLATE_DIR_PATH: str = 'static/templates'
 
     DEVICE_CONTROLER_URI: str = os.getenv('CONTROLLER_URI', 'ws://127.0.0.1:9000')
+
+    DEVICE_RESPONSE_SIZE_BYTES: int = 2048
+
+    CONNECT_TO_DEVICE_TIMEOUT: int = 3
+    CONNECT_TO_DEVICE_ATTEMPTS: int = 5
+
+    MESSAGE_COMMAND_SENT_SUCCESS: str = 'Команда успешно отправлена на устройство'
+    MESSAGE_COMMAND_SENT_FAIL: str = 'Ошибка отправки команды на устройство'
+    MESSAGE_WRONG_RESPONSE_FORMAT: str = 'Неверный формат ответа от устройства'
+    MESSAGE_DEVICE_RESPONSE_TIMEOUT: str = 'Превышен таймаут ожидания ответа от устройства'
+    MESSAGE_DRIVER_NOT_FOUND: str = 'Драйвер для данного устройства не найден'
+    MESSAGE_CONNECTION_SUCCESSFUL: str = 'Соединение с устройством успешно установлено'
+    MESSAGE_CONNECTION_FAILED: str = 'Не удалось установить соединение с устройством'
 
 
 settings = Settings()
