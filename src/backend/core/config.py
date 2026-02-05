@@ -67,8 +67,8 @@ class Settings(BaseSettings):
 
     DEVICE_RESPONSE_SIZE_BYTES: int = 2048
 
-    CONNECT_TO_DEVICE_TIMEOUT: int = 3
-    CONNECT_TO_DEVICE_ATTEMPTS: int = 5
+    CONNECT_TO_DEVICE_TIMEOUT: int = 2
+    CONNECT_TO_DEVICE_ATTEMPTS: int = 3
 
     MESSAGE_COMMAND_SENT_SUCCESS: str = 'Команда успешно отправлена на устройство'
     MESSAGE_COMMAND_SENT_FAIL: str = 'Ошибка отправки команды на устройство'
@@ -77,6 +77,7 @@ class Settings(BaseSettings):
     MESSAGE_DRIVER_NOT_FOUND: str = 'Драйвер для данного устройства не найден'
     MESSAGE_CONNECTION_SUCCESSFUL: str = 'Соединение с устройством успешно установлено'
     MESSAGE_CONNECTION_FAILED: str = 'Не удалось установить соединение с устройством'
+    MESSAGE_ERROR_DECODING_DEVICE_RESPONSE: str = 'Не удалось преобразовать ответ устройства'
 
 
 settings = Settings()

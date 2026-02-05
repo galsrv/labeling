@@ -28,7 +28,8 @@ class DeviceResponse(BaseModel):
     # device: tuple[str, int]
     ok: bool
     type: ResponseTypes
-    data: str | None = None
+    data: str | None = None  # вроде везде сделал str
+    # data: str | bytes | None = None
     message: str
     # data: ScalesResponse | PrinterResponse | str | None = None
     # message: str | None = None

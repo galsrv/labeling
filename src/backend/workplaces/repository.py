@@ -1,11 +1,5 @@
 from core.base_repo import BaseRepository
-from workplaces.models import ScalesOrm, WorkplaceOrm
-
-
-class ScalesRepository(BaseRepository):
-    """Класс сервисных функций модели."""
-    def __init__(self) -> None:
-        super().__init__(ScalesOrm)
+from workplaces.models import WorkplaceOrm
 
 
 class WorkplaceRepository(BaseRepository):
@@ -13,7 +7,5 @@ class WorkplaceRepository(BaseRepository):
     def __init__(self) -> None:
         super().__init__(WorkplaceOrm)
 
-
-scales_repo = ScalesRepository()
 
 workplaces_repo = WorkplaceRepository()

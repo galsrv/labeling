@@ -25,11 +25,17 @@ web_printers_router = APIRouter()
         dependencies=[Depends(logging_dependency)]
 )
 async def web_printer_test_connection(
-    payload: PrinterShortSchema,
-    session: AsyncSession = Depends(get_async_session),
+    ip: str = Form(),
+    port: int = Form(),
+    driver_name: str = Form(),
 ) -> WebJsonResponse:
     """Производим тест подключения."""
-    return await web_printers_service.test_connection(session, payload)
+    try:
+        printer = PrinterShortSchema(ip=ip, port=port, driver_name=driver_name)
+    except ValidationError as e:
+        return WebJsonResponse(ok=False, message=str(e))
+
+    return await web_printers_service.test_connection(printer)
 
 
 @web_printers_router.post(
@@ -43,9 +49,8 @@ async def web_printer_load_font(
     font_id: int = Form(),
     ip: str = Form(),
     port: int = Form(),
-    driver_id: int = Form(),
+    driver_name: str = Form(),
     font_file: UploadFile = File(),
-    session: AsyncSession = Depends(get_async_session),
 ) -> WebJsonResponse:
     """Загружаем шрифт в принтер."""
     if font_file.size > s.PRINTER_MAX_FONT_IMAGE_FILE_SIZE_BYTES:
@@ -55,12 +60,12 @@ async def web_printer_load_font(
     font_file_bytes: bytes = await font_file.read()
 
     try:
-        printer = PrinterShortSchema(ip=ip, port=port, driver_id=driver_id)
+        printer = PrinterShortSchema(ip=ip, port=port, driver_name=driver_name)
         font = PrinterFontSchema(font_id=font_id, file_bytes=font_file_bytes, filename=font_file.filename, content_type=font_file.content_type)
     except ValidationError as e:
         return WebJsonResponse(ok=False, message=str(e))
 
-    return await web_printers_service.load_font(session, printer, font)
+    return await web_printers_service.load_font(printer, font)
 
 
 @web_printers_router.post(
@@ -73,9 +78,8 @@ async def web_printer_load_font(
 async def web_printer_load_image(
     ip: str = Form(),
     port: int = Form(),
-    driver_id: int = Form(),
+    driver_name: str = Form(),
     image_file: UploadFile = File(),
-    session: AsyncSession = Depends(get_async_session),
 ) -> WebJsonResponse:
     """Загружаем картинку в принтер."""
     if image_file.size > s.PRINTER_MAX_FONT_IMAGE_FILE_SIZE_BYTES:
@@ -84,12 +88,13 @@ async def web_printer_load_image(
     image_file_bytes: bytes = await image_file.read()
 
     try:
-        printer = PrinterShortSchema(ip=ip, port=port, driver_id=driver_id)
+        printer = PrinterShortSchema(ip=ip, port=port, driver_name=driver_name)
         image = PrinterImageSchema(file_bytes=image_file_bytes, filename=image_file.filename)
+
     except ValidationError as e:
         return WebJsonResponse(ok=False, message=str(e))
 
-    return await web_printers_service.load_image(session, printer, image)
+    return await web_printers_service.load_image(printer, image)
 
 
 @web_printers_router.post(
@@ -103,17 +108,16 @@ async def web_printer_load_image(
 async def web_printer_send_arbitrary_command(
     ip: str = Form(),
     port: int = Form(),
-    driver_id: int = Form(),
+    driver_name: str = Form(),
     command: str = Form(),
-    session: AsyncSession = Depends(get_async_session),
 ) -> WebJsonResponse:
     """Отправляем произвольную команду на принтер."""
     try:
-        printer = PrinterShortSchema(ip=ip, port=port, driver_id=driver_id)
+        printer = PrinterShortSchema(ip=ip, port=port, driver_name=driver_name)
     except ValidationError as e:
         return WebJsonResponse(ok=False, message=str(e))
 
-    return await web_printers_service.send_arbitrary_command(session, printer, command)
+    return await web_printers_service.send_arbitrary_command(printer, command)
 
 
 @web_printers_router.get(

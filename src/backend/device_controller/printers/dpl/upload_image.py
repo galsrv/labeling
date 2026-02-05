@@ -11,7 +11,7 @@ from device_controller.printers.dpl.control_codes import get_control_codes
 
 
 def convert_raster_to_monochrome_bmp_bytes(
-    image_path: str,
+    image_bytes: bytes,
     *,
     max_size_px: Tuple[int, int] = (100, 100),
     threshold: int = 128,
@@ -36,11 +36,7 @@ def convert_raster_to_monochrome_bmp_bytes(
     if max_width_px <= 0 or max_height_px <= 0:
         raise ValueError("max_size_px must contain positive integers")
 
-    path = Path(image_path)
-    if not path.is_file():
-        raise FileNotFoundError(str(path))
-
-    with Image.open(path) as img:
+    with Image.open(io.BytesIO(image_bytes)) as img:
         # Flatten transparency onto white if present
         if img.mode in ("RGBA", "LA") or ("transparency" in img.info):
             rgba = img.convert("RGBA")
@@ -67,7 +63,8 @@ def convert_raster_to_monochrome_bmp_bytes(
 
 
 def build_dpl_image_upload_commands(
-    image_path: str,
+    image_bytes: bytes,
+    filename: str | None,
     module: str = "G",
     image_name: Optional[str] = None,
     control_codes: int = 0,
@@ -105,28 +102,22 @@ def build_dpl_image_upload_commands(
     soh = bytes([soh_byte])
     cr = bytes([cr_byte])
 
-    file_path = Path(image_path)
-    if not file_path.is_file():
-        raise FileNotFoundError(str(file_path))
-
-    ext = file_path.suffix.lower()
+    filename = filename or "IMAGE"
+    ext = Path(filename).suffix.lower()
 
     if ext in (".png", ".jpg", ".jpeg"):
         image_bytes = convert_raster_to_monochrome_bmp_bytes(
-            str(file_path),
+            image_bytes,
             max_size_px=max_size_px,
             threshold=threshold,
             fix_printer_orientation=fix_printer_orientation,
         )
         format_designator = "b"  # BMP as received
     elif ext == ".bmp":
-        image_bytes = file_path.read_bytes()
         format_designator = "b"
     elif ext == ".pcx":
-        image_bytes = file_path.read_bytes()
         format_designator = "p"
     elif ext == ".img":
-        image_bytes = file_path.read_bytes()
         format_designator = "i"
     else:
         raise ValueError(
@@ -134,7 +125,7 @@ def build_dpl_image_upload_commands(
             "(PNG/JPEG are converted to 1-bit BMP automatically)."
         )
 
-    raw_name = image_name or file_path.stem
+    raw_name = image_name or Path(filename).stem
     safe_name = re.sub(r"[^A-Za-z0-9_.-]+", "_", raw_name)[:16] or "IMAGE"
 
     # <STX>I a [b] f name <CR> data

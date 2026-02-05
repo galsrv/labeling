@@ -1,29 +1,6 @@
-from ipaddress import IPv4Address
 from pydantic import BaseModel, ConfigDict
 
-from drivers.schemas import DeviceDriversReadSchema, DeviceDriversWebSchema
-
-
-class ScalesReadSchema(BaseModel):
-    """Модель представления записи весов для вывода в API."""
-    id: int
-    ip: IPv4Address
-    port: int
-    description: str
-    driver: DeviceDriversReadSchema
-
-    model_config = ConfigDict(from_attributes=True)
-
-
-class ScalesWebSchema(BaseModel):
-    """Модель представления записи весов для вывода в HTML."""
-    id: int
-    ip: IPv4Address
-    port: int
-    description: str
-    driver: DeviceDriversWebSchema
-
-    model_config = ConfigDict(from_attributes=True)
+from scales.schemas import ScalesReadSchema, ScalesWebSchema
 
 
 class WorkplaceReadSchema(BaseModel):

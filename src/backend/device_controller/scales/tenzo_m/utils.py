@@ -1,6 +1,6 @@
 import random
 
-from validators.response import ScalesResponse
+from device_controller.validators import ScalesResponse
 
 
 def _crc_step(b_input: int, b_crc: int) -> int:

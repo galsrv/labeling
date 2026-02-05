@@ -3,7 +3,7 @@ from sqlalchemy import select
 
 from core.base_repo import BaseRepository, TOrm, AsyncSession
 from drivers.models import DriverType
-from workplaces.models import DeviceDriversOrm
+from scales.models import DeviceDriversOrm
 
 
 class DeviceDriversRepository(BaseRepository):

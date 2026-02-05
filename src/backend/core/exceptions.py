@@ -4,6 +4,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, RedirectResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from core.log import logger
 from frontend.responses import not_found_response
 
 
@@ -18,6 +19,8 @@ def register_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(ObjectNotFound)
     async def object_not_found_html(request: Request, exc: ObjectNotFound) -> JSONResponse | RedirectResponse:
         """Возращаем JSON/HTML в зависимости от того, откуда был запрос к ненайденного объекту."""
+        logger.info(f'Ошибка обработки запроса к {request.url}: {str(exc)}')
+
         if request.headers.get('accept', '').startswith('text/html'):
             return not_found_response(request)
 
@@ -28,6 +31,8 @@ def register_exception_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(StarletteHTTPException)
     async def custom_http_exception_handler(request: Request, exc: StarletteHTTPException) -> JSONResponse | RedirectResponse:
+        logger.info(f'Ошибка обработки запроса к {request.url}: {str(exc)}')
+
         # Кастомизируем поведение для ненайденных страниц для пользователей фронтенда
         if exc.status_code in (
             status.HTTP_404_NOT_FOUND, status.HTTP_422_UNPROCESSABLE_CONTENT
@@ -39,6 +44,8 @@ def register_exception_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(RequestValidationError)
     async def custom_http_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse | RedirectResponse:
+        logger.info(f'Ошибка обработки запроса к {request.url}: {str(exc)}')
+
         # Кастомизируем поведение для ошибок конвертации путей на фронтенде - например /web/orders/abcde
         if request.url.path.startswith('/web'):
             return not_found_response(request)

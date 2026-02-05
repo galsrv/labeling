@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.database import get_async_session
 
 from drivers.service import api_drivers_service
-from workplaces.schemas import DeviceDriversReadSchema
+from scales.schemas import DeviceDriversReadSchema
 
 drivers_router = APIRouter()
 

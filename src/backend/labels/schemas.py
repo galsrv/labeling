@@ -1,6 +1,6 @@
 from pydantic import BaseModel, ConfigDict
 
-from workplaces.schemas import DeviceDriversWebSchema
+from drivers.schemas import DeviceDriversWebSchema
 
 
 class LabelTemplatesWebSchema(BaseModel):

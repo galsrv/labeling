@@ -8,7 +8,7 @@ from core.exceptions import ObjectNotFound
 
 from drivers.models import DriverType
 from drivers.repository import drivers_repo
-from workplaces.schemas import (
+from scales.schemas import (
     DeviceDriversReadSchema,
     DeviceDriversWebSchema,
 )

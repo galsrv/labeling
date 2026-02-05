@@ -3,7 +3,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from core.config import settings as s
 from core.database import AppBaseClass
-from workplaces.models import DeviceDriversOrm
+from scales.models import DeviceDriversOrm
 
 
 class LabelTemplateORM(AppBaseClass):

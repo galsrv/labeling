@@ -6,12 +6,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.config import settings as s
 from core.exceptions import ObjectNotFound
 
-from device_controller.drivers import get_printer_driver
-from device_controller.printers.printers_base import BasePrinterDriver
+from device_controller.controllers import get_printer_controller
+from device_controller.printers.printers_base import BasePrinterController
 from device_controller.validators import DeviceResponse
 
 from drivers.models import DriverType
-from drivers.schemas import DeviceDriversWebSchema
 from drivers.service import web_drivers_service
 
 from frontend.responses import WebJsonResponse
@@ -52,15 +51,25 @@ class PrintersService:
         printers_dto = [self.read_model.model_validate(printer) for printer in printers]
         return printers_dto
 
-    async def update_form(self, session: AsyncSession, printer_id: int) -> T:
-        """Формируем контекст формы изменения принтера."""
+    async def get(self, session: AsyncSession, printer_id: int) -> T:
+        """Возвращаем принтер по его id."""
         printer = await printers_repo.get(session, printer_id)
 
         if printer is None:
             raise ObjectNotFound(s.ERROR_MESSAGE_ENTRY_DOESNT_EXIST)
 
         printer_dto = self.read_model.model_validate(printer)
+
+        return printer_dto
+
+    async def update_form(self, session: AsyncSession, printer_id: int) -> dict:
+        """Формируем контекст формы изменения принтера."""
         context: dict = await self.__get_common_context(session)
+
+        printer_dto: PrintersWebSchema = await self.get(session, printer_id)
+        controller: BasePrinterController | None = get_printer_controller(printer_dto.driver.name)
+
+        context['default_command'] = controller._get_default_command() if controller else ''
 
         context.update({
             'mode': 'update',
@@ -114,51 +123,47 @@ class PrintersService:
         """Удаляем принтер, ничего не возвращаем."""
         await printers_repo.delete(session, printer_id)
 
-    async def test_connection(self, session: AsyncSession, payload: PrinterShortSchema) -> WebJsonResponse:
+    async def test_connection(self, printer: PrinterShortSchema) -> WebJsonResponse:
         """Проверяем доступность принтера."""
-        driver_dto: DeviceDriversWebSchema = await web_drivers_service.get(session, payload.driver_id)
-        driver: BasePrinterDriver | None = get_printer_driver(driver_dto.name)
+        controller: BasePrinterController | None = get_printer_controller(printer.driver_name)
 
-        if driver is None:
+        if controller is None:
             return WebJsonResponse(ok=False, message=s.MESSAGE_DRIVER_NOT_FOUND)
 
-        response: DeviceResponse = await driver.test_connection(payload.ip.compressed, payload.port)
+        response: DeviceResponse = await controller.test_connection(printer.ip.compressed, printer.port)
 
         return WebJsonResponse(ok=response.ok, message=response.message)
 
-    async def load_font(self, session: AsyncSession, printer: PrinterShortSchema, font: PrinterFontSchema) -> WebJsonResponse:
+    async def load_font(self, printer: PrinterShortSchema, font: PrinterFontSchema) -> WebJsonResponse:
         """Загружаем шрифт в принтер."""
-        driver_dto: DeviceDriversWebSchema = await web_drivers_service.get(session, printer.driver_id)
-        driver: BasePrinterDriver | None = get_printer_driver(driver_dto.name)
+        controller: BasePrinterController | None = get_printer_controller(printer.driver_name)
 
-        if driver is None:
+        if controller is None:
             return WebJsonResponse(ok=False, message=s.MESSAGE_DRIVER_NOT_FOUND)
 
-        response: DeviceResponse = await driver.load_font(printer.ip.compressed, printer.port, font.file_bytes, font.filename, font.font_id)
+        response: DeviceResponse = await controller.load_font(printer.ip.compressed, printer.port, font.file_bytes, font.filename, font.font_id)
 
         return WebJsonResponse(ok=response.ok, message=response.message)
 
-    async def load_image(self, session: AsyncSession, printer: PrinterShortSchema, image: PrinterImageSchema) -> WebJsonResponse:
+    async def load_image(self, printer: PrinterShortSchema, image: PrinterImageSchema) -> WebJsonResponse:
         """Загружаем картинку в принтер."""
-        driver_dto: DeviceDriversWebSchema = await web_drivers_service.get(session, printer.driver_id)
-        driver: BasePrinterDriver | None = get_printer_driver(driver_dto.name)
+        controller: BasePrinterController | None = get_printer_controller(printer.driver_name)
 
-        if driver is None:
+        if controller is None:
             return WebJsonResponse(ok=False, message=s.MESSAGE_DRIVER_NOT_FOUND)
 
-        response: DeviceResponse = await driver.load_image(printer.ip.compressed, printer.port, image.file_bytes, image.filename)
+        response: DeviceResponse = await controller.load_image(printer.ip.compressed, printer.port, image.file_bytes, image.filename)
 
         return WebJsonResponse(ok=response.ok, message=response.message)
 
-    async def send_arbitrary_command(self, session: AsyncSession, printer: PrinterShortSchema, command: str) -> WebJsonResponse:
+    async def send_arbitrary_command(self, printer: PrinterShortSchema, command: str) -> WebJsonResponse:
         """Отправляем на принтер произвольную команду."""
-        driver_dto: DeviceDriversWebSchema = await web_drivers_service.get(session, printer.driver_id)
-        driver: BasePrinterDriver | None = get_printer_driver(driver_dto.name)
+        controller: BasePrinterController | None = get_printer_controller(printer.driver_name)
 
-        if driver is None:
+        if controller is None:
             return WebJsonResponse(ok=False, message=s.MESSAGE_DRIVER_NOT_FOUND)
 
-        response: DeviceResponse = await driver.send_arbitrary_command(printer.ip.compressed, printer.port, command)
+        response: DeviceResponse = await controller.send_arbitrary_command(printer.ip.compressed, printer.port, command)
 
         return WebJsonResponse(ok=response.ok, data=response.data, message=response.message)
 

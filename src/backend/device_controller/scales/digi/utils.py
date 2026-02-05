@@ -1,4 +1,4 @@
-from validators.response import ScalesResponse
+from device_controller.validators import ScalesResponse
 
 
 def decode_response(data: bytes) -> ScalesResponse | None:

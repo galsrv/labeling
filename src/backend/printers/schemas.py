@@ -48,12 +48,15 @@ class PrinterShortSchema(BaseModel):
     """Модель основный полей принтера плюс опционально команда на печать."""
     ip: IPv4Address
     port: int
-    driver_id: int
+    driver_name: str
     command: str | None = None
 
 
 def filename_length(value: str) -> str:
     """Обрезаем длину файла."""
+    if len(value) == 0:
+        raise ValueError(s.MESSAGE_WRONG_FILETYPE)
+
     return value[:15]
 
 

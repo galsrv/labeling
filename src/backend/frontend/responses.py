@@ -1,7 +1,10 @@
 from fastapi import Request, status
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
+
 from core.config import templates
+
+from device_controller.validators import ScalesResponse
 
 
 def not_found_response(request: Request) -> HTMLResponse:
@@ -17,4 +20,4 @@ class WebJsonResponse(BaseModel):
     """Структура ответа фронтенду в формате JSON."""
     ok: bool
     message: str
-    data: str | None = None
+    data: str | ScalesResponse | None = None

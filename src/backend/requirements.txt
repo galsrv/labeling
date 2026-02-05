@@ -14,3 +14,9 @@ loguru==0.7.3
 httpx==0.28.1,
 pytest==8.4.2,
 pytest-asyncio==1.2.0
+
+# Websockets
+websockets==15.0.1
+
+# For importing images to the printer
+pillow==12.0.0

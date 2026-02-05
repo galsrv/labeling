@@ -2,8 +2,11 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_async_session
+
+from scales.service import api_scales_service
+
 from workplaces.schemas import ScalesReadSchema, WorkplaceReadSchema
-from workplaces.service import api_scales_service, api_workplaces_service
+from workplaces.service import api_workplaces_service
 
 scales_router = APIRouter()
 
