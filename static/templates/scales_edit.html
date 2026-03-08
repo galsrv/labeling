@@ -1,0 +1,365 @@
+{% extends "base.html" %}
+
+{% set is_create = (mode == 'create') %}
+{% set page_title = 'Создать весы' if is_create else ('Весы #' ~ scales.id) %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+{% if error_message %}
+  <div class="alert alert-danger">
+    {{ error_message }}
+  </div>
+{% endif %}
+
+<form
+  action="{% if is_create %}{{ url_for('web_create_scales') }}{% else %}{{ url_for('web_update_scales', scales_id=scales.id) }}{% endif %}"
+  method="post"
+  autocomplete="off"
+>
+  <div class="card shadow-sm">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <div class="fw-semibold">{{ 'Создание весов' if is_create else 'Редактирование весов' }}</div>
+    </div>
+
+    <div class="card-body">
+      <dl class="row mb-4">
+        {% if not is_create %}
+          <dt class="col-sm-3">ID</dt>
+          <dd class="col-sm-9">#{{ scales.id }}</dd>
+        {% endif %}
+
+        <dt class="col-sm-3">IP</dt>
+        <dd class="col-sm-9">
+          {% if not is_create %}
+            <span
+              id="ipDisplay"
+              role="button"
+              title="Нажмите, чтобы изменить"
+            >
+              {{ scales.ip }}
+            </span>
+          {% endif %}
+
+          <input
+            id="ipInput"
+            name="ip"
+            class="form-control {% if not is_create %}d-none mt-2{% endif %}"
+            type="text"
+            value="{{ '' if is_create else scales.ip }}"
+            maxlength="64"
+            required
+          >
+          {% if not is_create %}
+            <div id="ipHint" class="form-text d-none">
+              Enter — сохранить, Esc — отмена
+            </div>
+          {% endif %}
+        </dd>
+
+        <dt class="col-sm-3">Порт</dt>
+        <dd class="col-sm-9">
+          {% if not is_create %}
+            <span
+              id="portDisplay"
+              role="button"
+              title="Нажмите, чтобы изменить"
+            >
+              {{ scales.port }}
+            </span>
+          {% endif %}
+
+          <input
+            id="portInput"
+            name="port"
+            class="form-control {% if not is_create %}d-none mt-2{% endif %}"
+            type="number"
+            min="1"
+            max="65535"
+            value="{{ '' if is_create else scales.port }}"
+            required
+          >
+          {% if not is_create %}
+            <div id="portHint" class="form-text d-none">
+              Enter — сохранить, Esc — отмена
+            </div>
+          {% endif %}
+        </dd>
+
+        <dt class="col-sm-3">Драйвер</dt>
+        <dd class="col-sm-9">
+          <div style="max-width: 22rem;">
+            <select class="form-select" name="driver_name" required>
+              {% for d in drivers %}
+                <option
+                  value="{{ d }}"
+                  {% if (not is_create and scales.driver_name == d) %}selected{% endif %}
+                >
+                  {{ d }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+        </dd>
+
+        <dt class="col-sm-3">Описание</dt>
+        <dd class="col-sm-9">
+          {% if not is_create %}
+            <span
+              id="descriptionDisplay"
+              role="button"
+              title="Нажмите, чтобы изменить"
+            >
+              {{ scales.description }}
+            </span>
+          {% endif %}
+
+          <input
+            id="descriptionInput"
+            name="description"
+            class="form-control {% if not is_create %}d-none mt-2{% endif %}"
+            type="text"
+            value="{{ '' if is_create else scales.description }}"
+            maxlength="255"
+          >
+          {% if not is_create %}
+            <div id="descriptionHint" class="form-text d-none">
+              Enter — сохранить, Esc — отмена
+            </div>
+          {% endif %}
+        </dd>
+      </dl>
+    </div>
+
+    <div class="card-footer bg-transparent d-flex justify-content-end gap-2">
+      <button type="submit" class="btn btn-sm btn-primary">Сохранить</button>
+
+      <a href="{{ url_for('web_get_all_scales') }}" class="btn btn-sm btn-outline-secondary">
+        Назад
+      </a>
+
+      {% if not is_create %}
+        <button
+          type="submit"
+          class="btn btn-sm btn-outline-danger"
+          formaction="{{ url_for('web_delete_scales', scales_id=scales.id) }}"
+          formmethod="post"
+          formnovalidate
+          onclick="return confirm('Удалить весы?');"
+        >
+          Удалить
+        </button>
+      {% endif %}
+    </div>
+  </div>
+</form>
+
+{% if not is_create %}
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <div class="fw-semibold mb-2">Получить вес</div>
+      <div class="d-flex align-items-center gap-2">
+        <button type="button" class="btn btn-outline-primary" id="getWeightBtn">
+          Получить
+        </button>
+        <span class="small" id="getWeightStatus"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <div class="fw-semibold mb-2">Стрим веса</div>
+      <div class="d-flex align-items-center gap-2">
+        <button type="button" class="btn btn-outline-primary" id="weightStreamBtn">
+          Подключиться
+        </button>
+      </div>
+      <div class="small mt-2" id="weightStreamStatus"></div>
+      <div class="mt-2" id="weightStreamLog"></div>
+    </div>
+  </div>
+{% endif %}
+
+<script>
+  const isCreate = {{ 'true' if is_create else 'false' }};
+
+  function setupInlineEdit(displayId, inputId, hintId) {
+    if (isCreate) return;
+    const display = document.getElementById(displayId);
+    const input = document.getElementById(inputId);
+    const hint = document.getElementById(hintId);
+
+    function openEdit() {
+      display.classList.add("d-none");
+      input.classList.remove("d-none");
+      hint.classList.remove("d-none");
+      input.focus();
+      input.select();
+    }
+
+    function closeEdit(save) {
+      if (save && input.value.trim()) {
+        display.textContent = input.value.trim();
+      } else {
+        input.value = display.textContent.trim();
+      }
+      input.classList.add("d-none");
+      hint.classList.add("d-none");
+      display.classList.remove("d-none");
+    }
+
+    display.addEventListener("click", openEdit);
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") { e.preventDefault(); closeEdit(true); }
+      if (e.key === "Escape") { e.preventDefault(); closeEdit(false); }
+    });
+    input.addEventListener("blur", () => closeEdit(true));
+  }
+
+  setupInlineEdit("ipDisplay", "ipInput", "ipHint");
+  setupInlineEdit("portDisplay", "portInput", "portHint");
+  setupInlineEdit("descriptionDisplay", "descriptionInput", "descriptionHint");
+
+  const ipInput = document.getElementById("ipInput");
+  const portInput = document.getElementById("portInput");
+  const driverSelect = document.querySelector('select[name="driver_name"]');
+
+  const getWeightBtn = document.getElementById("getWeightBtn");
+  const getWeightStatus = document.getElementById("getWeightStatus");
+  const getWeightUrl = "{{ url_for('web_scales_get_weight') }}";
+  const weightStreamBtn = document.getElementById("weightStreamBtn");
+  const weightStreamStatus = document.getElementById("weightStreamStatus");
+  const weightStreamLog = document.getElementById("weightStreamLog");
+  const weightStreamPath = new URL("{{ url_for('websocket_get_weight_stream') }}").pathname;
+
+  function setStatus(el, ok, message) {
+    if (!el) return;
+    el.className = "small";
+    if (ok === true) el.classList.add("text-success");
+    else if (ok === false) el.classList.add("text-danger");
+    else el.classList.add("text-muted");
+    el.textContent = message || "";
+  }
+
+  if (getWeightBtn) getWeightBtn.addEventListener("click", async () => {
+    setStatus(getWeightStatus, null, "Запрос...");
+    getWeightBtn.disabled = true;
+
+    try {
+      const formData = new FormData();
+      formData.append("ip", ipInput.value.trim());
+      formData.append("port", String(portInput.value));
+      formData.append("driver_name", driverSelect.value || "");
+
+      const res = await fetch(getWeightUrl, {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (data && typeof data === "object") {
+        if (data.ok && data.data && typeof data.data === "object") {
+          setStatus(getWeightStatus, true, String(data.data.weight));
+        } else {
+          setStatus(getWeightStatus, false, data.message || "Ошибка");
+        }
+      } else {
+        setStatus(getWeightStatus, false, "Ошибка ответа сервера.");
+      }
+    } catch (e) {
+      setStatus(getWeightStatus, false, "Ошибка отправки (нет связи с сервером).");
+    } finally {
+      getWeightBtn.disabled = false;
+    }
+  });
+
+  if (weightStreamBtn) weightStreamBtn.addEventListener("click", () => {
+    setStatus(weightStreamStatus, null, "Подключение...");
+    weightStreamBtn.disabled = true;
+    if (weightStreamLog) weightStreamLog.innerHTML = "";
+    const streamRows = [];
+
+    function renderStream() {
+      if (!weightStreamLog) return;
+      weightStreamLog.innerHTML = "";
+      for (const row of streamRows) {
+        const div = document.createElement("div");
+        div.className = `small ${row.isError ? "text-danger" : "text-muted"}`;
+        div.textContent = row.text;
+        weightStreamLog.appendChild(div);
+      }
+    }
+
+    function pushStreamRow(text, isError = false) {
+      streamRows.push({ text, isError });
+      if (streamRows.length > 20) streamRows.shift();
+      renderStream();
+    }
+
+    try {
+      const wsProtocol = window.location.protocol === "https:" ? "wss" : "ws";
+      const wsUrl = `${wsProtocol}://${window.location.host}${weightStreamPath}?ip=${encodeURIComponent(ipInput.value.trim())}&port=${encodeURIComponent(portInput.value)}&driver_name=${encodeURIComponent(driverSelect.value || "")}`;
+      const socket = new WebSocket(wsUrl);
+      const closeTimer = setTimeout(() => {
+        if (socket.readyState === WebSocket.OPEN) {
+          socket.close(1000, "timeout");
+        }
+      }, 10000);
+
+      socket.addEventListener("message", (event) => {
+        let data = event.data;
+        try {
+          data = JSON.parse(event.data);
+        } catch (_) {
+          data = event.data;
+        }
+        if (typeof data === "string") {
+          const trimmed = data.trim();
+          if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+            try {
+              data = JSON.parse(trimmed);
+            } catch (_) {
+              data = event.data;
+            }
+          }
+        }
+
+        if (data && typeof data === "object" && "ok" in data) {
+          if (data.ok) {
+            const msg = data.message || (data.data && data.data.weight !== undefined ? String(data.data.weight) : "");
+            setStatus(weightStreamStatus, true, "Поток активен");
+            if (msg) pushStreamRow(msg, false);
+          } else {
+            const errMsg = data.message || "Ошибка";
+            setStatus(weightStreamStatus, false, errMsg);
+            pushStreamRow(errMsg, true);
+          }
+        } else {
+          const rawMsg = String(event.data || "");
+          setStatus(weightStreamStatus, true, "Поток активен");
+          if (rawMsg) pushStreamRow(rawMsg, false);
+        }
+      });
+
+      socket.addEventListener("error", () => {
+        setStatus(weightStreamStatus, false, "Ошибка соединения.");
+      });
+
+      socket.addEventListener("close", (event) => {
+        clearTimeout(closeTimer);
+        if (event && event.code && event.code !== 1000 && event.reason) {
+          setStatus(weightStreamStatus, false, event.reason);
+          pushStreamRow(event.reason, true);
+        } else {
+          setStatus(weightStreamStatus, null, "Поток завершен.");
+        }
+        weightStreamBtn.disabled = false;
+      });
+    } catch (e) {
+      setStatus(weightStreamStatus, false, "Не удалось открыть WebSocket.");
+      weightStreamBtn.disabled = false;
+    }
+  });
+</script>
+{% endblock %}

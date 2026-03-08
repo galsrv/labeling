@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}Задания на производство{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">Задания на производство</h1>
+
+<div class="table-responsive">
+  <table class="table table-striped table-hover align-middle">
+    <colgroup>
+      <col style="width: 6rem;">
+      <col style="width: 8.5rem;">
+      <col style="width: 40%;">
+      <col style="width: 9.5rem;">
+      <col style="width: 15rem;">
+      <col style="width: 15rem;">
+      <col style="width: 16rem;">
+      <col style="width: 8.5rem;">
+    </colgroup>
+
+    <thead class="table-dark">
+      <tr>
+        <th>ID</th>
+        <th>Дата</th>
+        <th>Продукт</th>
+        <th>Статус</th>
+        <th class="text-end">Заказано (кг)</th>
+        <th class="text-end">Произведено (кг)</th>
+        <th>Прогресс</th>
+        <th class="text-end"></th>
+      </tr>
+    </thead>
+
+    <tbody>
+    {% for order in orders %}
+      <tr>
+        <td class="fw-semibold">#{{ order.id }}</td>
+
+        <td class="text-nowrap">
+          {{ order.production_date_str }}
+        </td>
+
+        <td>
+          <div class="fw-semibold text-truncate" style="max-width: 42rem;">
+            {{ order.item.name }}
+          </div>
+        </td>
+
+        <td class="text-nowrap">
+          {% if order.status_label == 'Создано' %}
+            <span class="badge text-bg-secondary">Создано</span>
+          {% elif order.status_label == 'Активно' %}
+            <span class="badge text-bg-primary">Активно</span>
+          {% elif order.status_label == 'Закрыто' %}
+            <span class="badge text-bg-success">Закрыто</span>
+          {% else %}
+            <span class="badge text-bg-dark">{{ order.status_label }}</span>
+          {% endif %}
+        </td>
+
+        <td class="text-end text-nowrap">
+          {{ order.ordered_kg_str }}
+        </td>
+
+        <td class="text-end text-nowrap">
+          {{ order.produced_kg_str }}
+        </td>
+
+        <td>
+          <div class="d-flex align-items-center gap-2">
+            <div class="progress flex-grow-1" role="progressbar"
+                 aria-valuenow="{{ order.progress_pct }}" aria-valuemin="0" aria-valuemax="100">
+              <div class="progress-bar {{ order.progress_bar_class }}" style="width: {{ order.progress_pct }}%"></div>
+            </div>
+            <span class="text-nowrap small">{{ order.progress_pct }}%</span>
+          </div>
+        </td>
+
+        <td class="text-end text-nowrap">
+          {% if order.status_label == 'Закрыто' %}
+            <a class="btn btn-sm btn-outline-secondary disabled" aria-disabled="true">Запустить</a>
+          {% else %}
+            <a href="{{ url_for('execute_order', order_id=order.id) }}" class="btn btn-sm btn-primary">
+              Запустить
+            </a>
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

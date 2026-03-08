@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Продукты{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">Продукты</h1>
+
+{% if all_items and all_items|length > 0 %}
+<div class="table-responsive">
+    <table class="table table-striped table-hover align-middle">
+        <colgroup>
+            <col style="width: 5rem;">     <!-- ID -->
+            <col style="width: 35%;">      <!-- Name (wide) -->
+            <col style="width: 8rem;">     <!-- Fixed weight -->
+            <col style="width: 10rem;">    <!-- Nominal weight -->
+            <col style="width: 14rem;">    <!-- GTIN -->
+            <col style="width: 10rem;">    <!-- Units per box -->
+        </colgroup>
+
+        <thead class="table-dark">
+            <tr>
+                <th>ID</th>
+                <th>Наименование</th>
+                <th class="text-center">Фикс вес</th>
+                <th class="text-end">Вес</th>
+                <th>GTIN</th>
+                <th class="text-end">Штук в коробе</th>
+            </tr>
+        </thead>
+
+        <tbody>
+        {% for item in all_items %}
+            <tr>
+                <td class="fw-semibold">#{{ item.id }}</td>
+
+                <td>
+                    <div class="fw-semibold text-truncate" style="max-width: 40rem;" title="{{ item.name }}">
+                        {{ item.name }}
+                    </div>
+                </td>
+
+                <td class="text-center">
+                    <input
+                        type="checkbox"
+                        class="form-check-input"
+                        disabled
+                        {% if item.fixed_weight %}checked{% endif %}
+                    >
+                </td>
+
+                <td class="text-end text-nowrap">
+                    {{ item.nominal_weight_str }} кг
+                </td>
+
+                <td class="text-nowrap">
+                    {{ item.gtin }}
+                </td>
+
+                <td class="text-end">
+                    {{ item.units_per_box }}
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="alert alert-info">
+    Продукты не найдены.
+</div>
+{% endif %}
+{% endblock %}

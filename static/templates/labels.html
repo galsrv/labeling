@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Шаблоны этикеток{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="mb-0">Шаблоны этикеток</h1>
+
+    <a href="{{ url_for('web_create_label_form') }}" class="btn btn-sm btn-primary">
+        Создать
+    </a>
+</div>
+
+
+{% if all_labels and all_labels|length > 0 %}
+<div class="table-responsive">
+    <table class="table table-striped table-hover align-middle">
+        <colgroup>
+            <col style="width: 6rem;">     <!-- ID -->
+            <col style="width: 55%;">      <!-- Name (long) -->
+            <col style="width: 14rem;">    <!-- Driver -->
+            <col style="width: 6rem;">     <!-- Action -->
+        </colgroup>
+
+        <thead class="table-dark">
+            <tr>
+                <th>ID</th>
+                <th>Наименование</th>
+                <th>Драйвер</th>
+                <th class="text-end"></th>
+            </tr>
+        </thead>
+
+        <tbody>
+        {% for label in all_labels %}
+            <tr>
+                <td class="fw-semibold">#{{ label.id }}</td>
+
+                <td>
+                    <a
+                        href="{{ url_for('web_update_label_form', label_id=label.id) }}"
+                        class="fw-semibold text-truncate d-inline-block text-decoration-none text-reset"
+                        style="max-width: 50rem;"
+                        title="{{ label.name }}"
+                    >
+                        {{ label.name }}
+                    </a>
+                </td>
+
+
+                <td class="text-nowrap">
+                    {{ label.driver_name }}
+                </td>
+
+                <td class="text-end">
+                    <a
+                        href="{{ url_for('web_update_label_form', label_id=label.id) }}"
+                        class="btn btn-sm btn-outline-secondary px-3"
+                        title="Перейти"
+                        aria-label="Перейти"
+                    >
+                        &rsaquo;
+                    </a>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="alert alert-info">
+    Шаблоны этикеток не найдены.
+</div>
+{% endif %}
+{% endblock %}

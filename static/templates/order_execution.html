@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}Задание #{{ order.id }}{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <div class="fw-semibold">Задание #{{ order.id }}</div>
+
+    {% if order.status_label == 'Создано' %}
+      <span class="badge text-bg-secondary">Создано</span>
+    {% elif order.status_label == 'Активно' %}
+      <span class="badge text-bg-primary">Активно</span>
+    {% elif order.status_label == 'Закрыто' %}
+      <span class="badge text-bg-success">Закрыто</span>
+    {% else %}
+      <span class="badge text-bg-dark">{{ order.status_label }}</span>
+    {% endif %}
+  </div>
+
+  <div class="card-body">
+    <dl class="row mb-0">
+      <dt class="col-sm-4">Дата производства</dt>
+      <dd class="col-sm-8">{{ order.production_date_str }}</dd>
+
+      <dt class="col-sm-4">Продукт</dt>
+      <dd class="col-sm-8 fw-semibold">{{ order.item.name }}</dd>
+
+      <dt class="col-sm-4">Заказано</dt>
+      <dd class="col-sm-8">{{ order.ordered_kg_str }} кг</dd>
+
+      <dt class="col-sm-4">Произведено</dt>
+      <dd class="col-sm-8">{{ order.produced_kg_str }} кг</dd>
+
+      <dt class="col-sm-4">Прогресс</dt>
+      <dd class="col-sm-8">
+        <div class="d-flex align-items-center gap-2">
+          <div class="progress flex-grow-1" role="progressbar"
+               aria-valuenow="{{ order.progress_pct }}" aria-valuemin="0" aria-valuemax="100">
+            <div class="progress-bar {{ order.progress_bar_class }}" style="width: {{ order.progress_pct }}%"></div>
+          </div>
+          <span class="text-nowrap small">{{ order.progress_pct }}%</span>
+        </div>
+        <div class="text-muted small mt-1">
+          {{ order.produced_kg_str }} / {{ order.ordered_kg_str }} кг
+        </div>
+      </dd>
+    </dl>
+  </div>
+
+  <div class="card-footer bg-transparent d-flex justify-content-between align-items-center">
+    <a href="{{ url_for('read_orders') }}" class="btn btn-sm btn-outline-secondary">
+      ← Назад к списку заданий
+    </a>
+
+    {% if order.status_label == 'Закрыто' %}
+      <span class="text-muted small">Задание закрыто</span>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

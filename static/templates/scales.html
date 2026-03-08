@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Весы{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="mb-0">Весы</h1>
+
+    <a href="{{ url_for('web_create_scales_form') }}" class="btn btn-sm btn-primary">
+        Создать
+    </a>
+</div>
+
+{% if all_scales and all_scales|length > 0 %}
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+        {% for scale in all_scales %}
+        <div class="col">
+            <div class="card h-100 shadow-sm position-relative hover-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <h5 class="card-title mb-2">⚖️ Весы #{{ scale.id }}</h5>
+                    </div>
+
+                    <a
+                        href="{{ url_for('web_update_scales_form', scales_id=scale.id) }}"
+                        class="stretched-link"
+                        aria-label="Открыть весы #{{ scale.id }}"
+                    ></a>
+
+                    <dl class="row mb-0">
+                        <dt class="col-5">IP</dt>
+                        <dd class="col-7 text-break mb-2">{{ scale.ip }}</dd>
+
+                        <dt class="col-5">Порт</dt>
+                        <dd class="col-7 mb-2">{{ scale.port }}</dd>
+
+                        <dt class="col-5">Драйвер</dt>
+                        <dd class="col-7 mb-2">{{ scale.driver_name }}</dd>
+
+                        <dt class="col-5">Описание</dt>
+                        <dd class="col-7 mb-0">
+                            <span class="d-block text-truncate" style="max-width: 100%;" title="{{ scale.description }}">
+                                {{ scale.description }}
+                            </span>
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="alert alert-info">
+        Весы не найдены.
+    </div>
+{% endif %}
+{% endblock %}

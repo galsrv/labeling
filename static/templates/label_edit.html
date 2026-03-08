@@ -1,0 +1,363 @@
+{% extends "base.html" %}
+
+{% set is_create = (mode == 'create') %}
+{% set page_title = 'Создать шаблон этикетки' if is_create else ('Шаблон этикетки #' ~ label.id) %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<form
+  action="{% if is_create %}{{ url_for('web_create_label') }}{% else %}{{ url_for('web_update_label', label_id=label.id) }}{% endif %}"
+  method="post"
+  autocomplete="off"
+>
+
+  <div class="card shadow-sm">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <div class="fw-semibold">{{ 'Создание шаблона' if is_create else 'Редактирование шаблона' }}</div>
+    </div>
+
+    <div class="card-body">
+      <dl class="row mb-4">
+        {% if not is_create %}
+          <dt class="col-sm-3">ID</dt>
+          <dd class="col-sm-9">#{{ label.id }}</dd>
+        {% endif %}
+
+        <dt class="col-sm-3">Наименование</dt>
+        <dd class="col-sm-9">
+          <!-- View mode (only for edit) -->
+          {% if not is_create %}
+            <span
+              id="nameDisplay"
+              role="button"
+              title="Нажмите, чтобы изменить"
+            >
+              {{ label.name }}
+            </span>
+          {% endif %}
+
+          <!-- Edit mode (always has input for form submit) -->
+          <input
+            id="nameInput"
+            name="name"
+            class="form-control {% if not is_create %}d-none mt-2{% endif %}"
+            type="text"
+            value="{{ '' if is_create else label.name }}"
+            maxlength="255"
+            required
+          >
+          {% if not is_create %}
+            <div id="nameHint" class="form-text d-none">
+              Enter — сохранить, Esc — отмена
+            </div>
+          {% endif %}
+        </dd>
+
+        <dt class="col-sm-3">Драйвер</dt>
+        <dd class="col-sm-9">
+          <div style="max-width: 22rem;">
+            <select class="form-select" name="driver_name" required>
+              {% for d in drivers %}
+                <option
+                  value="{{ d }}"
+                  {% if (not is_create and label.driver_name == d) %}selected{% endif %}
+                >
+                  {{ d }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+        </dd>
+      </dl>
+
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <div class="fw-semibold mb-0">Команда печати</div>
+        <button type="button" class="btn btn-sm btn-outline-secondary" id="copyBtn">
+          Копировать
+        </button>
+      </div>
+
+      <!-- Control codes (dynamic) -->
+      <div class="d-flex flex-wrap gap-2 mb-2">
+        {% for token in control_codes %}
+          <button
+            type="button"
+            class="btn btn-sm btn-outline-primary"
+            data-token="{{ token }}"
+            title="Вставить {{ token }}"
+          >
+            {{ token }}
+          </button>
+        {% endfor %}
+      </div>
+
+      <!-- Label variables (dynamic, slightly different tone) -->
+      <div class="d-flex flex-wrap gap-2 mb-2">
+        {% for token in label_variables %}
+          <button
+            type="button"
+            class="btn btn-sm btn-outline-success"
+            data-token="{{ token }}"
+            title="Вставить {{ token }}"
+          >
+            {{ token }}
+          </button>
+        {% endfor %}
+      </div>
+
+      <!-- Textarea stays for form submission; CodeMirror replaces it -->
+      <textarea
+        id="printCommand"
+        name="print_command"
+        class="form-control"
+        rows="6"
+        spellcheck="false"
+      >{{ '' if is_create else (label.print_command or '') }}</textarea>
+    </div>
+
+    <!-- test print -->
+    <hr class="my-4">
+
+    <div class="border rounded p-3 bg-light">
+      <div class="fw-semibold mb-3">Тест печати</div>
+
+      <div class="row g-3 align-items-end">
+        <div class="col-12 col-md-5">
+          <label for="testItem" class="form-label">Продукт</label>
+          <select id="testItem" class="form-select">
+            {% for it in items %}
+              <option value="{{ it.id }}">{{ it.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="col-12 col-md-4">
+          <label for="testPrinter" class="form-label">Принтер</label>
+          <select id="testPrinter" class="form-select">
+            {% for p in printers %}
+              <option value="{{ p.id }}">{{ p.ip }} - {{ p.description }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="col-12 col-md-3 d-grid">
+          <button type="button" class="btn btn-outline-primary" id="testPrintBtn">
+            Отправить на печать
+          </button>
+        </div>
+      </div>
+
+      <div class="mt-3 small" id="testPrintStatus"></div>
+    </div>
+
+    <div class="card-footer bg-transparent d-flex justify-content-end gap-2">
+      <button type="submit" class="btn btn-sm btn-primary">Сохранить</button>
+
+      <a href="{{ url_for('web_get_all_labels') }}" class="btn btn-sm btn-outline-secondary">
+        Назад
+      </a>
+
+    {% if not is_create %}
+      <button
+        type="submit"
+        class="btn btn-sm btn-outline-danger"
+        formaction="{{ url_for('web_delete_label', label_id=label.id) }}"
+        formmethod="post"
+        formnovalidate
+        onclick="return confirm('Удалить шаблон этикетки?');"
+      >
+        Удалить
+      </button>
+    {% endif %}
+
+
+    </div>
+  </div>
+</form>
+
+<!-- CodeMirror 5 (CDN) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/lib/codemirror.min.css">
+<script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/lib/codemirror.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/theme/eclipse.min.css">
+
+<script>
+  /* ---------- Name: click-to-edit (edit mode only) ---------- */
+  const isCreate = {{ 'true' if is_create else 'false' }};
+  if (!isCreate) {
+    const nameDisplay = document.getElementById("nameDisplay");
+    const nameInput = document.getElementById("nameInput");
+    const nameHint = document.getElementById("nameHint");
+
+    function openNameEdit() {
+      nameDisplay.classList.add("d-none");
+      nameInput.classList.remove("d-none");
+      nameHint.classList.remove("d-none");
+      nameInput.focus();
+      nameInput.select();
+    }
+
+    function closeNameEdit(save) {
+      if (save && nameInput.value.trim()) {
+        nameDisplay.textContent = nameInput.value.trim();
+      } else {
+        nameInput.value = nameDisplay.textContent;
+      }
+      nameInput.classList.add("d-none");
+      nameHint.classList.add("d-none");
+      nameDisplay.classList.remove("d-none");
+    }
+
+    nameDisplay.addEventListener("click", openNameEdit);
+    nameInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") { e.preventDefault(); closeNameEdit(true); }
+      if (e.key === "Escape") { e.preventDefault(); closeNameEdit(false); }
+    });
+    nameInput.addEventListener("blur", () => closeNameEdit(true));
+  }
+
+  /* ---------- CodeMirror: custom highlighting ---------- */
+  CodeMirror.defineMode("printCommandMode", function() {
+    return {
+      token: function(stream) {
+        // <...>
+        if (stream.peek() === "<") {
+          const s = stream.string.slice(stream.pos);
+          const m = s.match(/^<[^>]*>/);
+          if (m) { stream.pos += m[0].length; return "pc-angle"; }
+        }
+        // {...}
+        if (stream.peek() === "{") {
+          const s = stream.string.slice(stream.pos);
+          const m = s.match(/^\{[^}]*\}/);
+          if (m) { stream.pos += m[0].length; return "pc-curly"; }
+        }
+        // underscore
+        if (stream.peek() === "_") {
+          stream.next();
+          return "pc-underscore";
+        }
+        stream.next();
+        return null;
+      }
+    };
+  });
+
+  const textarea = document.getElementById("printCommand");
+  const editor = CodeMirror.fromTextArea(textarea, {
+    mode: "printCommandMode",
+    lineNumbers: true,
+    lineWrapping: true,
+    theme: "eclipse",
+    indentUnit: 2,
+    tabSize: 2,
+    viewportMargin: Infinity  // helps auto-grow height
+  });
+
+  /* ---------- Auto-grow with content ---------- */
+  function autoResize() {
+    const scroller = editor.getScrollerElement();
+    scroller.style.height = "auto";
+    editor.setSize(null, scroller.scrollHeight);
+  }
+
+  editor.on("change", () => {
+    editor.save();   // keep textarea synced for form submit
+    autoResize();
+  });
+
+  autoResize();
+
+  /* ---------- Token insertion (both rows) ---------- */
+  function insertToken(token) {
+    editor.focus();
+    editor.replaceSelection(token, "around");
+  }
+
+  document.querySelectorAll("[data-token]").forEach(btn => {
+    btn.addEventListener("click", () => insertToken(btn.getAttribute("data-token")));
+  });
+
+  /* ---------- Copy button ---------- */
+  const copyBtn = document.getElementById("copyBtn");
+  copyBtn.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(editor.getValue());
+      const old = copyBtn.textContent;
+      copyBtn.textContent = "Скопировано";
+      setTimeout(() => copyBtn.textContent = old, 1200);
+    } catch {
+      // ignore if clipboard blocked
+    }
+  });
+
+  /* ---------- Styling for token classes + editor look ---------- */
+  const style = document.createElement("style");
+  style.textContent = `
+    .cm-pc-angle { color: var(--bs-primary) !important; font-weight: 600; }
+    .cm-pc-curly { color: var(--bs-success) !important; font-weight: 600; }
+    .cm-pc-underscore { color: var(--bs-danger) !important; font-weight: 700; }
+
+    .CodeMirror {
+      border: 1px solid var(--bs-border-color);
+      border-radius: .375rem;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 0.95rem;
+    }
+  `;
+  document.head.appendChild(style);
+
+  const testBtn = document.getElementById("testPrintBtn");
+  const testStatus = document.getElementById("testPrintStatus");
+  const testItem = document.getElementById("testItem");
+  const testPrinter = document.getElementById("testPrinter");
+
+  // Your driver select already exists in the form:
+  const driverSelect = document.querySelector('select[name="driver_name"]');
+
+  // Put your backend endpoint name here:
+  const testPrintUrl = "{{ url_for('web_print_label_test') }}";
+
+  function setStatus(text, kind) {
+    testStatus.className = "mt-3 small";
+    if (kind === "ok") testStatus.classList.add("text-success");
+    else if (kind === "err") testStatus.classList.add("text-danger");
+    else testStatus.classList.add("text-muted");
+    testStatus.textContent = text;
+  }
+
+  testBtn.addEventListener("click", async () => {
+    setStatus("Отправка...", "muted");
+    testBtn.disabled = true;
+
+    try {
+      const payload = {
+        print_command: editor.getValue(),
+        item_id: Number(testItem.value),
+        printer_id: Number(testPrinter.value),
+        driver_name: driverSelect.value,
+      };
+
+      const res = await fetch(testPrintUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (data && typeof data === "object") {
+        const msg = data.message || (data.ok ? "ОК" : "Ошибка печати");
+        setStatus(msg, data.ok ? "ok" : "err");
+      } else {
+        setStatus("Ошибка ответа сервера.", "err");
+      }
+    } catch (e) {
+      setStatus("Ошибка отправки (нет связи с сервером).", "err");
+    } finally {
+      testBtn.disabled = false;
+    }
+  });
+
+
+</script>
+{% endblock %}
