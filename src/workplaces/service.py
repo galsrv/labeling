@@ -15,9 +15,6 @@ T = TypeVar('T', bound=BaseModel)
 
 class WorkplacesService:
     """Сервисный слой для рабочих мест."""
-    # def __init__(self, read_model: type[BaseModel]) -> None:
-    #     """Инициализация объекта класса."""
-    #     self.read_model = read_model
 
     async def get_all(self, session: AsyncSession) -> list[T]:
         """Возвращаем из БД все рабочие места."""
@@ -30,7 +27,7 @@ class WorkplacesService:
         workplace = await workplaces_repo.get(session, workplace_id)
 
         if workplace is None:
-            raise ObjectNotFound(s.ERROR_MESSAGE_ENTRY_DOESNT_EXIST)
+            raise ObjectNotFound(s.MESSAGE_ENTRY_DOESNT_EXIST)
 
         workplace_dto = WorkplaceReadWebSchema.model_validate(workplace)
         return workplace_dto

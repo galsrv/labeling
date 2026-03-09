@@ -10,9 +10,10 @@ load_dotenv(dotenv_path)
 
 class Settings(BaseSettings):
     """Класс настроек приложения."""
-
     PROD_ENVIRONMENT: bool = os.getenv('PROD', 'False').lower() in ('true', '1')
+
     APP_TITLE: str = 'Labeling Application'
+
     HOST: str = os.getenv('BACKEND_HOST', '127.0.0.1')
     PORT: int = int(os.getenv('BACKEND_PORT', 8000))
 
@@ -29,10 +30,15 @@ class Settings(BaseSettings):
     REDOC_URL: str = '/api/redoc'
 
     API_URL_PREFIX: str = '/api/v1'
+    WEB_URL_PREFIX: str = '/web'
+
+    WEB_TEMPLATE_DIR_PATH: str = '../static/templates'
 
     LOG_FILE_PATH: str = '../logs/log.txt'
     LOG_NUMBER_OF_FILES_TO_KEEP: int = 5
     LOG_FILE_MAX_SIZE: str = '1 MB'
+
+    # Валидация объектов
 
     ITEM_NAME_MAX_LENGTH: int = 100
     ITEM_INGRIDIENTS_MAX_LENGTH: int = 255
@@ -40,37 +46,37 @@ class Settings(BaseSettings):
     ITEM_GTIN_MIN_VALUE: int = 1_000_000_000_000
     ITEM_GTIN_MAX_VALUE: int = 9_999_999_999_999
 
-    DRIVER_NAME_MAX_LENGTH: int = 20
-
     DEVICE_PORT_MIN: int = 1024
     DEVICE_PORT_MAX: int = 65535
     DEVICE_DESCRIPTION_MAX_LENGTH: int = 255
+
+    DRIVER_NAME_MAX_LENGTH: int = 30
 
     LABEL_TEMPLATE_NAME_MAX_LENGTH: int = 100
     LABEL_TEMPLATE_COMMAND_MAX_LENGTH: int = 100
 
     PROCESS_NAME_MAX_LENGTH: int = 100
 
-    PRINTER_MAX_FONT_IMAGE_FILE_SIZE_BYTES: int = 500_000  # 500 Kb
+    PRINTER_MAX_FONT_IMAGE_FILE_SIZE_BYTES: int = 500_000  # 500 KB
 
-    ERROR_MESSAGE_ENTRY_DOESNT_EXIST: str = 'Запрошенная запись не существует'
-    MESSAGE_SAVE_DATA_ERROR: str = 'Ошибка сохрания записи. Проверьте введенные данные'
-    MESSAGE_METHOD_NOT_IMPLEMENTED: str = 'Метод не реализован для данного драйвера'
-    MESSAGE_WRONG_FONT_ID: str = 'Неверно указан код шрифта для принтера'
-    MESSAGE_WRONG_FILESIZE: str = 'Некорректный размер файла'
-    MESSAGE_WRONG_FILETYPE: str = 'Некорректный тип файла'
-    MESSAGE_WRONG_DRIVER_NAME: str = 'Некорретно указан драйвер'
-
-    WEB_URL_PREFIX: str = '/web'
-    WEB_TEMPLATE_DIR_PATH: str = '../static/templates'
-
-    DEVICE_CONTROLER_URI: str = os.getenv('CONTROLLER_URI', 'ws://127.0.0.1:9000')
+    # Коммуникация с устройствами
 
     DEVICE_RESPONSE_SIZE_BYTES: int = 2048
 
     CONNECT_TO_DEVICE_TIMEOUT: int = 2
     CONNECT_TO_DEVICE_ATTEMPTS: int = 3
     DEVICE_POLL_INTERVAL: float = 0.5
+    # WAIT_FOR_DEVICE_RESPONSE_TIMEOUT: int = 2
+
+    # Сообщения пользователю
+
+    MESSAGE_ENTRY_DOESNT_EXIST: str = 'Запрошенная запись не существует'
+    MESSAGE_SAVE_DATA_ERROR: str = 'Ошибка сохрания записи. Проверьте введенные данные'
+    MESSAGE_METHOD_NOT_IMPLEMENTED: str = 'Метод не реализован для данного драйвера'
+    MESSAGE_WRONG_FONT_ID: str = 'Неверно указан код шрифта для принтера'
+    MESSAGE_WRONG_FILESIZE: str = 'Некорректный размер файла'
+    MESSAGE_WRONG_FILETYPE: str = 'Некорректный тип файла'
+    MESSAGE_WRONG_DRIVER_NAME: str = 'Некорретно указан драйвер'
 
     MESSAGE_COMMAND_SENT_SUCCESS: str = 'Команда успешно отправлена на устройство'
     MESSAGE_COMMAND_SENT_FAIL: str = 'Ошибка отправки команды на устройство'

@@ -12,57 +12,57 @@ class BasePrinterDriver(BaseDeviceDriver):
         return response_str
 
     async def print_label(self, host: str, port: int, command: str) -> DeviceResponse:
-        """Отправляем этикетку на печать."""
+        """Отправляем этикетку на печать.
+
+        1. Кодируем команду
+        2. Отправляем команду.
+        """
         try:
-            # Кодируем команду
             command_bytes: bytes = self._encode_command(command)
-
-            # Отправляем команду
             await self._send_workflow(host, port, command_bytes)
-
             return DeviceResponse(ok=True, type=ResponseTypes.info, data=None, message=s.MESSAGE_COMMAND_SENT_SUCCESS)
 
         except Exception as e:
             return DeviceResponse(ok=False, type=ResponseTypes.info, data=None, message=str(e) or s.MESSAGE_COMMAND_SENT_FAIL)
 
     async def load_font(self, host: str, port: int, font_file_bytes: bytes, filename: str, font_id: int) -> DeviceResponse:
-        """Загружаем штрифт в принтер."""
+        """Загружаем штрифт в принтер.
+
+        1. Кодируем команду
+        2. Отправляем команду.
+        """
         try:
-            # Кодируем команду
             command_bytes: bytes = self._encode_load_font(font_file_bytes, filename, font_id)
-
-            # Отправляем команду
             await self._send_workflow(host, port, command_bytes)
-
             return DeviceResponse(ok=True, type=ResponseTypes.info, data=None, message=s.MESSAGE_COMMAND_SENT_SUCCESS)
 
         except Exception as e:
             return DeviceResponse(ok=False, type=ResponseTypes.info, data=None, message=str(e))
 
     async def load_image(self, host: str, port: int, image_file_bytes: bytes, filename: str) -> DeviceResponse:
-        """Загружаем картинку в принтер."""
+        """Загружаем картинку в принтер.
+
+        1. Кодируем команду
+        2. Отправляем команду.
+        """
         try:
-            # Кодируем команду
             command_bytes: bytes = self._encode_load_image(image_file_bytes, filename)
-
-            # Отправляем команду
             await self._send_workflow(host, port, command_bytes)
-
             return DeviceResponse(ok=True, type=ResponseTypes.info, data=None, message=s.MESSAGE_COMMAND_SENT_SUCCESS)
 
         except Exception as e:
             return DeviceResponse(ok=False, type=ResponseTypes.info, data=None, message=str(e))
 
     async def send_arbitrary_command(self, host: str, port: int, command: str) -> DeviceResponse:
-        """Отправляем произвольную комунду на принтер."""
+        """Отправляем произвольную комунду на принтер.
+
+        1. Кодируем команду
+        2. Отправляем команду, получаем ответ
+        3. Декодируем ответ.
+        """
         try:
-            # Кодируем команду
             command_bytes: bytes = self._encode_command(command)
-
-            # Отправляем команду, получаем ответ
             response_bytes: bytes = await self._send_and_receive_workflow(host, port, command_bytes)
-
-            # Декодируем ответ
             response: str = self._decode_response(response_bytes)
 
         except Exception as e:

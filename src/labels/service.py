@@ -56,7 +56,7 @@ class LabelTemplatesService:
         label = await label_repo.get(session, label_id)
 
         if label is None:
-            raise ObjectNotFound(s.ERROR_MESSAGE_ENTRY_DOESNT_EXIST)
+            raise ObjectNotFound(s.MESSAGE_ENTRY_DOESNT_EXIST)
 
         label_dto = LabelTemplatesReadWebSchema.model_validate(label)
 

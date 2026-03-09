@@ -49,7 +49,7 @@ class PrintersService:
         printer = await printers_repo.get(session, printer_id)
 
         if printer is None:
-            raise ObjectNotFound(s.ERROR_MESSAGE_ENTRY_DOESNT_EXIST)
+            raise ObjectNotFound(s.MESSAGE_ENTRY_DOESNT_EXIST)
 
         printer_dto = PrinterReadWebSchema.model_validate(printer)
 

@@ -1,4 +1,3 @@
-import asyncio
 from typing import TypeVar
 
 from fastapi import WebSocket, WebSocketDisconnect
@@ -44,7 +43,7 @@ class ScalesService:
         scales = await scales_repo.get(session, scales_id)
 
         if scales is None:
-            raise ObjectNotFound(s.ERROR_MESSAGE_ENTRY_DOESNT_EXIST)
+            raise ObjectNotFound(s.MESSAGE_ENTRY_DOESNT_EXIST)
 
         scales_dto = ScalesReadWebSchema.model_validate(scales)
         return scales_dto
@@ -109,7 +108,7 @@ class ScalesService:
         await scales_repo.delete(session, scales_id)
 
     async def get_weight(self, ip: str, port: int, driver_name: str) -> WebJsonResponse:
-        """Получаем вес с весов."""
+        """Получаем вес с весов однократно."""
         try:
             scales = ScalesShortSchema(ip=ip, port=port, driver_name=driver_name)
         except ValidationError as e:
@@ -120,32 +119,22 @@ class ScalesService:
         return WebJsonResponse(ok=response.ok, data=response.data)
 
     async def get_weight_stream(self, ip: str, port: int, driver_name: str, websocket: WebSocket) -> None:
-        """Получаем вес с весов в потоке."""
+        """Получаем вес с весов в потоке. Используем объект-генератор."""
         await ws_connection_manager.connect(websocket)
 
         try:
             scales = ScalesShortSchema(ip=ip, port=port, driver_name=driver_name)
-            await self._get_weight_stream_cycle(scales, websocket)
 
-        except (ValidationError, Exception) as e:
-            response = DeviceResponse(ok=False, type=ResponseTypes.error, message=str(e))
-            await ws_connection_manager.send_message(response.model_dump_json(exclude_none=True), websocket)
-            await ws_connection_manager.disconnect(websocket)
-
-    async def _get_weight_stream_cycle(self, scales: ScalesShortSchema, websocket: WebSocket) -> None:
-        while True:
-            response: DeviceResponse = await self._get_weight_stream_iteration(scales)
-            try:
+            async for response in scales.driver.get_weight_stream(scales.ip.compressed, scales.port):
                 await ws_connection_manager.send_message(response.model_dump_json(exclude_none=True), websocket)
-            except (WebSocketDisconnect, Exception):
-                break
-            await asyncio.sleep(s.DEVICE_POLL_INTERVAL)
 
-        await ws_connection_manager.disconnect(websocket)
+        except (ValidationError, WebSocketDisconnect, Exception) as e:
+            response = DeviceResponse(ok=False, type=ResponseTypes.error, message=str(e))
+            if not isinstance(e, WebSocketDisconnect):
+                await ws_connection_manager.send_message(response.model_dump_json(exclude_none=True), websocket)
 
-    async def _get_weight_stream_iteration(self, scales: ScalesShortSchema) -> DeviceResponse:
-        response: DeviceResponse = await scales.driver.get_weight(scales.ip.compressed, scales.port)
-        return response
+        finally:
+            await ws_connection_manager.disconnect(websocket)
 
 
 scales_service = ScalesService()

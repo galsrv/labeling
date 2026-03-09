@@ -22,7 +22,6 @@ class ConnectionManager:
         """Закрываем соединение."""
         try:
             await websocket.close(code=code, reason=reason)
-            logger.log(L.WS, f'⚡ Закрыт вебсокет с {websocket.client.host}:{websocket.client.port}')
         except RuntimeError:
             # Вебсокет уже закрыт или в некорректном состоянии
             pass
@@ -30,6 +29,7 @@ class ConnectionManager:
     async def disconnect(self, websocket: WebSocket, code: int = 1000, reason: str | None = None) -> None:
         """Удаляем соединение из пула."""
         await self.close(websocket, code=code, reason=reason)
+        logger.log(L.WS, f'⚡ Закрыт вебсокет с {websocket.client.host}:{websocket.client.port}')
 
         if websocket in self.active_connections:
             self.active_connections.remove(websocket)

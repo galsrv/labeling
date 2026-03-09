@@ -28,7 +28,7 @@ class ItemsService:
         item = await items_repo.get(session, item_id)
 
         if item is None:
-            raise ObjectNotFound(s.ERROR_MESSAGE_ENTRY_DOESNT_EXIST)
+            raise ObjectNotFound(s.MESSAGE_ENTRY_DOESNT_EXIST)
 
         item_dto = self.read_model.model_validate(item)
         return item_dto

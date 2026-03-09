@@ -27,7 +27,7 @@ class OrdersService:
         order = await orders_repo.get(session, order_id)
 
         if order is None:
-            raise ObjectNotFound(s.ERROR_MESSAGE_ENTRY_DOESNT_EXIST)
+            raise ObjectNotFound(s.MESSAGE_ENTRY_DOESNT_EXIST)
 
         order_dto = self.read_model.model_validate(order)
         return order_dto
