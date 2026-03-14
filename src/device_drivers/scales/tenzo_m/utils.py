@@ -85,11 +85,11 @@ def decode_response(data: bytes) -> ScalesResponse | None:
         sign = -1 if (CON & 0b10000000) else 1
         decimal_pos = CON & 0b00000111
         stable = bool(CON & 0b00010000)
-        overload = bool(CON & 0b00001000)
+        # overload = bool(CON & 0b00001000)
 
         weight = sign * (raw / (10 ** decimal_pos))
 
-        return ScalesResponse(weight=weight, stable=stable, overload=overload)
+        return ScalesResponse(weight=weight, stable=stable)
 
     except Exception:
         return None

@@ -37,7 +37,7 @@ class ConnectionManager:
     async def send_message(self, message: str, websocket: WebSocket) -> None:
         """Отправляем сообщение фронтенду."""
         await websocket.send_text(message)
-        logger.log(L.WS, f'⚡ Отправлено сообщение {message} адресу {websocket.client.host}:{websocket.client.port}')
+        logger.log(L.WS, f'🡲  {websocket.client.host}:{websocket.client.port}: {message}')
 
 
 ws_connection_manager = ConnectionManager()

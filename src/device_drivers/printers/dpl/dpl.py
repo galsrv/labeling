@@ -16,11 +16,6 @@ SELECT_FONT_SYMBOL_SET = '<STX>ySCP<CR>'
 class Dpl(BasePrinterDriver):
     """Класс с реализацией DPL команд для принтера."""
 
-    # def __init__(self) -> None:
-    #     super().__init__(
-    #         command=None,
-    #     )
-
     def _encode_command(self, command: str) -> bytes:
         """Формируем команду для отправки на принтер."""
         return build_dpl_unicode_label(command)

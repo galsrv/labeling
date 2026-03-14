@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import Enum, StrEnum
 
 from pydantic import BaseModel
 
@@ -12,11 +12,20 @@ class ResponseTypes(Enum):
     error = 'error'
 
 
+class ScalesModes(StrEnum):
+    """Режимы работы весов.
+
+    pull - весы отвечают на запрос
+    push - весы отправляют данные в потоке (стартовая команда может не требоваться)
+    """
+    pull = 'pull'
+    push = 'push'
+
+
 class ScalesResponse(BaseModel):
     """Класс для валидации и сериализации блока данных в ответе весов серверу."""
     weight: float
     stable: bool
-    overload: bool
 
 
 # class PrinterResponse(BaseModel):
@@ -61,13 +70,5 @@ class NotImplementedClass():
         raise NotImplementedError(s.MESSAGE_METHOD_NOT_IMPLEMENTED)
 
     def _evaluate_test_connection(self, *args, **kwargs) -> None:
-        """Реализуется в дочерних классах."""
-        raise NotImplementedError(s.MESSAGE_METHOD_NOT_IMPLEMENTED)
-
-    def _get_gross_weight_command(self, *args, **kwargs) -> None:
-        """Реализуется в дочерних классах."""
-        raise NotImplementedError(s.MESSAGE_METHOD_NOT_IMPLEMENTED)
-
-    def _decode_response(self, *args, **kwargs) -> None:
         """Реализуется в дочерних классах."""
         raise NotImplementedError(s.MESSAGE_METHOD_NOT_IMPLEMENTED)

@@ -43,20 +43,20 @@ def decode_response(data: bytes) -> ScalesResponse | None:
 
         if status_char == "S":
             stable = True
-            overload = False
+            # overload = False
         elif status_char == "D":
             stable = False
-            overload = False
+            # overload = False
         elif status_char == "I":  # overload/underload
             stable = False
-            overload = True
+            # overload = True
         else:
             return None  # Unknown status → treat as invalid frame
 
         return ScalesResponse(
             weight=value,
             stable=stable,
-            overload=overload
+            # overload=overload,
         )
 
     except Exception:

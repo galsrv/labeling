@@ -34,14 +34,14 @@ class TcpConnection:
                     asyncio.open_connection(host, port), timeout=s.CONNECT_TO_DEVICE_TIMEOUT)
 
                 cls._connections[scales_socket] = (reader, writer)
-                logger.log(L.DEVICES, f'⚡ Открыто новое TCP соединение с {host}:{port}')
+                logger.log(L.TCP, f'⚡ Открыто новое соединение с {host}:{port}')
                 return reader, writer
 
             except Exception as e:
                 exception = e
                 continue
 
-        logger.error(f'<❌ Не удалось установить TCP соединение с {host}:{port}: {exception}')
+        logger.error(f'<❌ Не удалось установить соединение с {host}:{port}: {exception}')
         raise exception
 
     @classmethod
@@ -64,7 +64,7 @@ class TcpConnection:
             _, writer = cls._connections.pop(scales_socket)
             writer.close()
             await writer.wait_closed()
-            logger.log(L.DEVICES, f'⚡ Закрыто TCP соединение с устройством {host}:{port}')
+            logger.log(L.TCP, f'⚡ Закрыто соединение с устройством {host}:{port}')
 
     @classmethod
     async def close_all(cls) -> None:
@@ -72,7 +72,7 @@ class TcpConnection:
         for (host, port), (_, writer) in cls._connections.items():
             writer.close()
             await writer.wait_closed()
-            logger.log(L.DEVICES, f'⚡ Закрыто TCP соединение с устройством {host}:{port}')
+            logger.log(L.TCP, f'⚡ Закрыто соединение с устройством {host}:{port}')
         cls._connections.clear()
 
 

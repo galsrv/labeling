@@ -1,8 +1,7 @@
-from core.config import settings as s
-
 from device_drivers.scales.scales_base import BaseScalesDriver
 from device_drivers.scales.tenzo_m.utils import decode_response
-from device_drivers.validators import ScalesResponse, DeviceResponse, ResponseTypes
+from device_drivers.utils import read_fixed_length
+from device_drivers.validators import ScalesModes
 
 
 get_gross_weight_command = b'\xFF\x01\xC3\xE3\xFF\xFF'
@@ -15,17 +14,13 @@ class TensoM(BaseScalesDriver):
 
     Для используемых команд значения CRC заранее рассчитаны.
     """
-    def _get_gross_weight_command(self) -> bytes:
-        return get_gross_weight_command
+    def __init__(self) -> None:
+        super().__init__()
 
-    def _decode_response(self, response_bytes: bytes) -> DeviceResponse:
-        """Декодируем ответ весов."""
-        response: ScalesResponse | None = decode_response(response_bytes)
-
-        if response is None:
-            return DeviceResponse(ok=False, type=ResponseTypes.error, message=s.MESSAGE_ERROR_DECODING_DEVICE_RESPONSE)
-
-        return DeviceResponse(ok=True, type=ResponseTypes.data, data=response)
+        self._mode = ScalesModes.pull
+        self._get_gross_weight_command = get_gross_weight_command
+        self._frame_reader_func = read_fixed_length
+        self._decode_response_func = decode_response
 
 
 weight_service_tenso_m = TensoM()

@@ -32,12 +32,12 @@ def decode_response(data: bytes) -> ScalesResponse | None:
 
         # DI-160 streaming does not provide stable/overload flags
         stable = True
-        overload = False
+        # overload = False
 
         return ScalesResponse(
             weight=weight,
             stable=stable,
-            overload=overload,
+            # overload=overload,
         )
 
     except Exception:
