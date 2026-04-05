@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_async_session
-from transactions.schemas import OrderReadSchema
-from transactions.service import api_orders_service
+from orders.schemas import OrderReadSchema
+from orders.service import api_orders_service
 
 api_orders_router = APIRouter()
 

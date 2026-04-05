@@ -58,4 +58,87 @@
     {% endif %}
   </div>
 </div>
+
+<div class="card shadow-sm mt-4">
+  <div class="card-header">
+    <div class="fw-semibold">Пакетная печать этикеток</div>
+  </div>
+
+  <div class="card-body">
+    <div class="row g-3 align-items-end">
+      <div class="col-12 col-md-4">
+        <label for="numberToPrint" class="form-label">Количество</label>
+        <input
+          id="numberToPrint"
+          class="form-control"
+          type="number"
+          min="1"
+          max="1000"
+          step="1"
+          inputmode="numeric"
+          required
+        >
+      </div>
+
+      <div class="col-12 col-md-auto">
+        <button type="button" class="btn btn-primary" id="batchPrintBtn">
+          Напечатать
+        </button>
+      </div>
+    </div>
+
+    <div class="small mt-3" id="batchPrintStatus"></div>
+  </div>
+</div>
+
+<script>
+  const batchPrintBtn = document.getElementById('batchPrintBtn');
+  const batchPrintStatus = document.getElementById('batchPrintStatus');
+  const numberToPrintInput = document.getElementById('numberToPrint');
+  const batchPrintUrl = '{{ url_for("web_orders_sgtin_batch_print", order_id=order.id) }}';
+
+  function setBatchPrintStatus(ok, message) {
+    batchPrintStatus.className = 'small mt-3';
+    if (ok === true) batchPrintStatus.classList.add('text-success');
+    else if (ok === false) batchPrintStatus.classList.add('text-danger');
+    else batchPrintStatus.classList.add('text-muted');
+    batchPrintStatus.textContent = message || '';
+  }
+
+  batchPrintBtn.addEventListener('click', async () => {
+    if (!numberToPrintInput.reportValidity()) {
+      return;
+    }
+
+    const numberToPrint = Number(numberToPrintInput.value);
+    if (!Number.isInteger(numberToPrint) || numberToPrint < 1 || numberToPrint > 1000) {
+      setBatchPrintStatus(false, 'Количество для печати должно быть в диапазоне 1-1000');
+      return;
+    }
+
+    batchPrintBtn.disabled = true;
+    setBatchPrintStatus(null, 'Печать...');
+
+    try {
+      const formData = new FormData();
+      formData.append('number_to_print', String(numberToPrint));
+
+      const response = await fetch(batchPrintUrl, {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+      if (data && typeof data.ok === 'boolean') {
+        setBatchPrintStatus(data.ok, data.message || String(data.ok));
+      } else {
+        setBatchPrintStatus(false, 'Некорректный ответ сервера.');
+      }
+    } catch (error) {
+      setBatchPrintStatus(false, 'Ошибка отправки.');
+    } finally {
+      batchPrintBtn.disabled = false;
+    }
+  });
+</script>
 {% endblock %}

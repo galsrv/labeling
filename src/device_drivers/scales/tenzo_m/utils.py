@@ -43,7 +43,7 @@ def _compute_crc(data: bytes, as_hex: bool = False) -> str | int:
 def decode_response(data: bytes) -> ScalesResponse | None:
     """Разбираем полученный от весов поток.
 
-    Возвращаем кортеж (вес_брутто, флаг стабильного веса, флаг перегруза),
+    Возвращаем кортеж (вес_брутто, флаг стабильного веса),
     либо None, если CRC или иные данные некорректны.
     Frame layout:
       0     1   2   3   4   5   6    7   8  9

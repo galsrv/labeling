@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Коды маркировки{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-8 col-xl-6">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h1 class="h4 mb-0">Загрузка кодов маркировки</h1>
+            </div>
+
+            <div class="card-body">
+                <div class="mb-3">
+                    <label for="sgtinFile" class="form-label">Файл с кодами</label>
+                    <input
+                        id="sgtinFile"
+                        class="form-control"
+                        type="file"
+                        name="file"
+                        required
+                    >
+                </div>
+
+                <div class="d-flex align-items-center gap-3">
+                    <button type="button" class="btn btn-primary" id="uploadSgtinsBtn">
+                        Загрузить коды
+                    </button>
+                    <span class="small" id="uploadSgtinsStatus"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+  const uploadSgtinsBtn = document.getElementById('uploadSgtinsBtn');
+  const uploadSgtinsStatus = document.getElementById('uploadSgtinsStatus');
+  const sgtinFileInput = document.getElementById('sgtinFile');
+  const batchInsertUrl = '{{ url_for("web_sgtin_batch_insert") }}';
+
+  function setStatus(ok, message) {
+    uploadSgtinsStatus.className = 'small';
+    if (ok === true) uploadSgtinsStatus.classList.add('text-success');
+    else if (ok === false) uploadSgtinsStatus.classList.add('text-danger');
+    else uploadSgtinsStatus.classList.add('text-muted');
+    uploadSgtinsStatus.textContent = message;
+  }
+
+  uploadSgtinsBtn.addEventListener('click', async () => {
+    if (!sgtinFileInput.files || sgtinFileInput.files.length === 0) {
+      setStatus(false, 'Файл не выбран.');
+      return;
+    }
+
+    uploadSgtinsBtn.disabled = true;
+    setStatus(null, 'Загрузка...');
+
+    try {
+      const formData = new FormData();
+      formData.append('file', sgtinFileInput.files[0]);
+
+      const response = await fetch(batchInsertUrl, {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+      if (data && typeof data.ok === 'boolean') {
+        setStatus(data.ok, data.message || String(data.ok));
+      } else {
+        setStatus(false, 'Некорректный ответ сервера.');
+      }
+    } catch (error) {
+      setStatus(false, 'Ошибка отправки.');
+    } finally {
+      uploadSgtinsBtn.disabled = false;
+    }
+  });
+</script>
+{% endblock %}

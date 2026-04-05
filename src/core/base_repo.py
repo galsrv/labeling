@@ -23,7 +23,7 @@ class BaseRepository:
         db_obj = db_obj.scalars().first()
 
         success = 'успех' if db_obj else 'объект не найден'
-        logger.debug(f'Получен объект БД: модель={self.model.__name__}, id={obj_id}, результат={success}')
+        logger.debug(f'Получение объекта БД: модель={self.model.__name__}, id={obj_id}, результат={success}')
         return db_obj
 
     async def get_all(self, session: AsyncSession) -> list[TOrm]:
@@ -100,3 +100,36 @@ class BaseRepository:
         await session.execute(query)
         await session.commit()
         logger.debug(f'Удалы все записи модели: {self.model.__name__}')
+
+    async def batch_create(self, session: AsyncSession, data_input_list: list[BaseModel]) -> bool:
+        """Метод пакетного создания записей в таблице."""
+        if not data_input_list:
+            return True
+
+        new_db_objects = [self.model(**data_input.model_dump()) for data_input in data_input_list]
+        session.add_all(new_db_objects)
+
+        try:
+            await session.commit()
+            logger.debug(f'Созданы записи в БД: модель={self.model.__name__}, количество={len(new_db_objects)}')
+            return True
+        except IntegrityError as e:
+            await session.rollback()
+            logger.debug(f'Ошибка пакетного создания записей в БД: модель={self.model.__name__}, ошибка:{str(e)}')
+            return False
+
+    async def batch_update(self, session: AsyncSession, ids: list[int], data_input: BaseModel) -> bool:
+        """Массовая смена статуса кодов маркировки."""
+        data_input_dict: dict = data_input.model_dump(exclude_none=True)
+
+        query = update(self.model).where(self.model.id.in_(ids)).values(**data_input_dict)
+
+        try:
+            await session.execute(query)
+            await session.commit()
+            logger.debug(f'Обновлено {len(ids)} записей в БД: модель={self.model.__class__.__name__}')
+            return True
+        except IntegrityError as e:
+            await session.rollback()
+            logger.debug(f'Ошибка изменения записей в БД: модель={self.model.__class__.__name__}, ошибка:{str(e)}')
+            return False

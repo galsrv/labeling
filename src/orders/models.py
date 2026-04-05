@@ -1,7 +1,7 @@
 from datetime import date
 from enum import Enum
 
-from sqlalchemy import CheckConstraint, Date, Float, ForeignKey, Integer, Enum as SQLEnum, String, text
+from sqlalchemy import Date, Float, ForeignKey, Integer, Enum as SQLEnum, String, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from core.config import settings as s
@@ -35,13 +35,6 @@ class OrderOrm(AppBaseClass):
     produced_boxes: Mapped[int] = mapped_column(Integer, default=0, server_default=text('0'))
 
     item: Mapped[ItemsOrm] = relationship(ItemsOrm, lazy='joined')
-
-    __table_args__ = (
-        CheckConstraint(
-            "production_date >= CURRENT_DATE - INTERVAL '1 day' AND production_date <= CURRENT_DATE + INTERVAL '30 day'",
-            name="production_date_range"
-        ),
-    )
 
     __order_by__ = (id, )
 

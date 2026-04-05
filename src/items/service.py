@@ -33,6 +33,10 @@ class ItemsService:
         item_dto = self.read_model.model_validate(item)
         return item_dto
 
+    async def get_all_gtins(self, session: AsyncSession) -> list:
+        """Метод получения всех значений поля GTIN."""
+        return await items_repo.get_all_gtins(session)
+
 
 api_items_service = ItemsService(read_model=ItemReadSchema)
 

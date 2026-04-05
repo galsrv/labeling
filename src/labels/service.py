@@ -124,5 +124,17 @@ class LabelTemplatesService:
 
         return WebJsonResponse(ok=response.ok, message=response.message)
 
+    async def print_label(self, session: AsyncSession, printer_dto: PrinterReadWebSchema, label_command: str, label_context: dict) -> WebJsonResponse:
+        """Печатаем этикетку."""
+        command_to_print = build_print_command(label_command, label_context)
+        driver: BasePrinterDriver | None = get_printer_driver(printer_dto.driver_name)
+
+        if not driver:
+            return WebJsonResponse(ok=False, message=s.MESSAGE_DRIVER_NOT_FOUND)
+
+        response: DeviceResponse = await driver.print_label(printer_dto.ip.compressed, printer_dto.port, command_to_print)
+
+        return WebJsonResponse(ok=response.ok, message=response.message)
+
 
 labels_service = LabelTemplatesService()

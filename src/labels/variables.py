@@ -5,6 +5,7 @@ from sqlalchemy.inspection import inspect
 
 from core.database import TOrm
 from items.models import ItemsOrm
+from sgtins.models import SgtinOrm
 
 
 class ControlCodes(Enum):
@@ -17,14 +18,16 @@ class ControlCodes(Enum):
     GS = '<GS>'
 
 
-class LabelVariables(Enum):
-    """Переменные, используемые при печати этикетки."""
-    item_name = '{item_name}'
-    ingredients = '{ingredients}'
-    nutrition = '{nutrition}'
-    nominal_weight = '{nominal_weight}'
-    gtin = '{gtin}'
-    shelf_life = '{shelf_life}'
+# class LabelVariables(Enum):
+#     """Переменные, используемые при печати этикетки."""
+#     item_name = '{item_name}'
+#     ingredients = '{ingredients}'
+#     nutrition = '{nutrition}'
+#     nominal_weight = '{nominal_weight}'
+#     gtin = '{gtin}'
+#     shelf_life = '{shelf_life}'
+#     sgtin = '{sgtin}'
+#     crypto_end = '{crypto_end}'
 
 
 def get_control_codes() -> list[str]:
@@ -40,4 +43,5 @@ def __get_column_names(model: Type[TOrm]) -> list[str]:
 def get_label_variables() -> list[str]:
     """Возвращаем список значений переменных."""
     items_variables = __get_column_names(ItemsOrm)
+    items_variables.extend(__get_column_names(SgtinOrm))
     return items_variables

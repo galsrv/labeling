@@ -1,5 +1,5 @@
 from core.base_repo import BaseRepository
-from transactions.models import OrderOrm
+from orders.models import OrderOrm
 
 
 class OrdersRepository(BaseRepository):

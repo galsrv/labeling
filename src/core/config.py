@@ -43,8 +43,11 @@ class Settings(BaseSettings):
     ITEM_NAME_MAX_LENGTH: int = 100
     ITEM_INGRIDIENTS_MAX_LENGTH: int = 255
     ITEM_NUTRITION_MAX_LENGTH: int = 255
-    ITEM_GTIN_MIN_VALUE: int = 1_000_000_000_000
-    ITEM_GTIN_MAX_VALUE: int = 9_999_999_999_999
+    ITEM_GTIN_MIN_VALUE: int = 1_000_000_000_000  # 13 digits
+    ITEM_GTIN_MAX_VALUE: int = 99_999_999_999_999  # 14 digits
+
+    ORDER_PRODUCTION_DATE_DEPTH_BACK: int = 1
+    ORDER_PRODUCTION_DATE_DEPTH_FORWARD: int = 30
 
     DEVICE_PORT_MIN: int = 1024
     DEVICE_PORT_MAX: int = 65535
@@ -58,6 +61,17 @@ class Settings(BaseSettings):
     PROCESS_NAME_MAX_LENGTH: int = 100
 
     PRINTER_MAX_FONT_IMAGE_FILE_SIZE_BYTES: int = 500_000  # 500 KB
+
+    GTIN_LENGTH: int = 14
+    SGTIN_LENGTH: int = 6
+    CRYPTO_END_LENGTH: int = 4
+
+    SGTIN_INSERT_MAX_FILE_SIZE_BYTES: int = 100_000  # 100 KB
+
+    SGTIN_SHELF_LIFE: int = 30
+
+    BATCH_PRINT_MAX_NUMBER_OF_LABELS: int = 1000
+    BATCH_PRINT_DELAY: float = 0.3
 
     # Коммуникация с устройствами
 
@@ -86,6 +100,21 @@ class Settings(BaseSettings):
     MESSAGE_CONNECTION_SUCCESSFUL: str = 'Соединение с устройством успешно установлено'
     MESSAGE_CONNECTION_FAILED: str = 'Не удалось установить соединение с устройством'
     MESSAGE_ERROR_DECODING_DEVICE_RESPONSE: str = 'Не удалось преобразовать ответ устройства'
+    MESSAGE_ERROR_LABEL_PRINTING: str = 'Ошибка печати этикетки'
+
+    MESSAGE_WRONG_GTIN_CODE_STRUCTURE: str = 'Неверный формат кода маркировки:'
+    MESSAGE_WRONG_GTIN_FILE_CODES_SECTION: str = 'Секция `codes` должна являться списком'
+    MESSAGE_WRONG_GTIN_FILE_TYPE: str = 'Неподдерживаемый тип файла'
+    MESSAGE_DUPLICATED_PAIR_GTIN_CRYPTO_END: str = 'Обнаружен дубль пары серийный номер + крипто-хвост:'
+    MESSAGE_GTIN_NOT_FOUND: str = 'В файле обнаружен GTIN, не принадлежащий ни одному продукту в системе:'
+    MESSAGE_ERROR_LOADING_SGTIN_FILE: str = 'Ошибка загрузки файла с кодами маркировки'
+    MESSAGE_SUCCESSFUL_FILE_PROCESSING: str = 'Файл с кодами маркировки успешно обработан'
+
+    MESSAGE_WRONG_AMOUNT_BATCH_LABEL_PRINT: str = 'Количество этикеток для печати должно быть в диапазоне от 1 до 1000'
+    MESSAGE_NOT_ENOUGH_CODES_TO_PRINT: str = 'Недостаточно кодов маркировки для печати:'
+    MESSAGE_NUMBER_OF_LABELS_PRINTED: str = 'Напечатано этикеток:'
+
+    MESSAGE_ORDER_WRONG_PRODUCTION_DATE: str = 'Некорректная дата производства'
 
 
 settings = Settings()
