@@ -1,13 +1,13 @@
 from ipaddress import IPv4Address
 from typing import Annotated
-from pydantic import AfterValidator, BaseModel, ConfigDict, field_validator
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, field_validator
 
 from core.config import settings as s
-from device_drivers.drivers import printer_drivers
+from drivers.drivers import printer_driver_name_validator
 
 
-class PrinterReadWebSchema(BaseModel):
-    """Модель представления записи принтеров для вывода в HTML."""
+class PrinterReadSchema(BaseModel):
+    """Модель представления принтера."""
     id: int
     ip: IPv4Address
     port: int
@@ -17,30 +17,19 @@ class PrinterReadWebSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-def driver_name_validator(value: str) -> str:
-    """Проверяем указанное имя драйвера."""
-    if value not in printer_drivers.keys():
-        raise ValueError(s.MESSAGE_WRONG_DRIVER_NAME)
-
-    return value
-
-
-class PrinterCreateUpdateWebSchema(BaseModel):
-    """Модель создания/изменения принтера для вывода в HTML."""
+class PrinterCreateUpdateSchema(BaseModel):
+    """Модель создания/изменения принтера."""
     ip: IPv4Address
-    port: int
-    driver_name: Annotated[str, AfterValidator(driver_name_validator)]
+    port: int = Field(ge=s.DEVICE_PORT_MIN, le=s.DEVICE_PORT_MAX)
     description: str
-
-    model_config = ConfigDict(from_attributes=True)
+    driver_name: Annotated[str, AfterValidator(printer_driver_name_validator)]
 
 
 class PrinterShortSchema(BaseModel):
-    """Модель основный полей принтера плюс опционально команда на печать."""
+    """Модель короткого представления принтера."""
     ip: IPv4Address
-    port: int
-    driver_name: Annotated[str, AfterValidator(driver_name_validator)]
-    command: str | None = None
+    port: int = Field(ge=s.DEVICE_PORT_MIN, le=s.DEVICE_PORT_MAX)
+    driver_name: Annotated[str, AfterValidator(printer_driver_name_validator)]
 
 
 def filename_length(value: str) -> str:

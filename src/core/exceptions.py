@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Request, status
-from fastapi.exception_handlers import http_exception_handler
+from fastapi.exception_handlers import http_exception_handler, request_validation_exception_handler
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, RedirectResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -10,6 +10,11 @@ from frontend.responses import not_found_response
 
 class ObjectNotFound(Exception):
     """Исключение - Объект не найден."""
+    pass
+
+
+class ObjectNotModified(Exception):
+    """Исключение - Объект не был изменен."""
     pass
 
 
@@ -29,6 +34,16 @@ def register_exception_handlers(app: FastAPI) -> None:
             content={'detail': str(exc)},
         )
 
+    @app.exception_handler(ObjectNotModified)
+    async def object_not_modified(request: Request, exc: ObjectNotFound) -> JSONResponse:
+        """Исключение для неуспешных операций изменения БД."""
+        logger.info(f'Ошибка обработки запроса к {request.url}: {str(exc)}')
+
+        return JSONResponse(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            content={'detail': str(exc)},
+        )
+
     @app.exception_handler(StarletteHTTPException)
     async def custom_http_exception_handler(request: Request, exc: StarletteHTTPException) -> JSONResponse | RedirectResponse:
         logger.info(f'Ошибка обработки запроса к {request.url}: {str(exc)}')
@@ -43,7 +58,7 @@ def register_exception_handlers(app: FastAPI) -> None:
         return await http_exception_handler(request, exc)
 
     @app.exception_handler(RequestValidationError)
-    async def custom_http_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse | RedirectResponse:
+    async def custom_validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
         logger.info(f'Ошибка обработки запроса к {request.url}: {str(exc)}')
 
         # Кастомизируем поведение для ошибок конвертации путей на фронтенде - например /web/orders/abcde
@@ -51,4 +66,4 @@ def register_exception_handlers(app: FastAPI) -> None:
             return not_found_response(request)
 
         # Для пользователей API поведение оставляем дефолтное
-        return await http_exception_handler(request, exc)
+        return await request_validation_exception_handler(request, exc)

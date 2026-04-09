@@ -5,10 +5,6 @@ from sqlalchemy.orm import Mapped, mapped_column
 from core.config import settings as s
 from core.database import AppBaseClass
 
-from device_drivers.drivers import printer_drivers
-
-AVAILABLE_DRIVERS = printer_drivers.keys()
-
 
 class PrinterOrm(AppBaseClass):
     """Модель справочника принтеров этикеток."""
@@ -24,10 +20,6 @@ class PrinterOrm(AppBaseClass):
     __table_args__ = (
         CheckConstraint(port >= s.DEVICE_PORT_MIN, name='check_port_min'),
         CheckConstraint(port <= s.DEVICE_PORT_MAX, name='check_port_max'),
-        CheckConstraint(
-            f"driver_name IN ({', '.join(repr(v) for v in AVAILABLE_DRIVERS)})",
-            name='check_driver_name_valid',
-        ),
     )
 
     __order_by__ = (id, )

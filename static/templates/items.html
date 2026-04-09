@@ -5,16 +5,25 @@
 {% block content %}
 <h1 class="mb-4">Продукты</h1>
 
-{% if all_items and all_items|length > 0 %}
-<div class="table-responsive">
+<div id="itemsLoading" class="alert alert-secondary">
+    Загрузка...
+</div>
+
+<div id="itemsError" class="alert alert-danger d-none"></div>
+
+<div id="itemsEmpty" class="alert alert-info d-none">
+    Продукты не найдены.
+</div>
+
+<div id="itemsTableWrapper" class="table-responsive d-none">
     <table class="table table-striped table-hover align-middle">
         <colgroup>
-            <col style="width: 5rem;">     <!-- ID -->
-            <col style="width: 35%;">      <!-- Name (wide) -->
-            <col style="width: 8rem;">     <!-- Fixed weight -->
-            <col style="width: 10rem;">    <!-- Nominal weight -->
-            <col style="width: 14rem;">    <!-- GTIN -->
-            <col style="width: 10rem;">    <!-- Units per box -->
+            <col style="width: 5rem;">
+            <col style="width: 35%;">
+            <col style="width: 8rem;">
+            <col style="width: 10rem;">
+            <col style="width: 14rem;">
+            <col style="width: 10rem;">
         </colgroup>
 
         <thead class="table-dark">
@@ -28,45 +37,79 @@
             </tr>
         </thead>
 
-        <tbody>
-        {% for item in all_items %}
-            <tr>
-                <td class="fw-semibold">#{{ item.id }}</td>
-
-                <td>
-                    <div class="fw-semibold text-truncate" style="max-width: 40rem;" title="{{ item.name }}">
-                        {{ item.name }}
-                    </div>
-                </td>
-
-                <td class="text-center">
-                    <input
-                        type="checkbox"
-                        class="form-check-input"
-                        disabled
-                        {% if item.fixed_weight %}checked{% endif %}
-                    >
-                </td>
-
-                <td class="text-end text-nowrap">
-                    {{ item.nominal_weight_str }} кг
-                </td>
-
-                <td class="text-nowrap">
-                    {{ item.gtin }}
-                </td>
-
-                <td class="text-end">
-                    {{ item.units_per_box }}
-                </td>
-            </tr>
-        {% endfor %}
-        </tbody>
+        <tbody id="itemsTableBody"></tbody>
     </table>
 </div>
-{% else %}
-<div class="alert alert-info">
-    Продукты не найдены.
-</div>
-{% endif %}
+
+<script>
+  const itemsApiUrl = '/api/v1/items/';
+  const itemsLoading = document.getElementById('itemsLoading');
+  const itemsError = document.getElementById('itemsError');
+  const itemsEmpty = document.getElementById('itemsEmpty');
+  const itemsTableWrapper = document.getElementById('itemsTableWrapper');
+  const itemsTableBody = document.getElementById('itemsTableBody');
+
+  function formatWeight(value) {
+    const number = Number(value ?? 0);
+    return `${number.toFixed(3)} кг`;
+  }
+
+  function setVisible(element, isVisible) {
+    element.classList.toggle('d-none', !isVisible);
+  }
+
+  function renderItems(items) {
+    itemsTableBody.innerHTML = '';
+
+    for (const item of items) {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td class="fw-semibold">#${item.id}</td>
+        <td>
+          <div class="fw-semibold text-truncate" style="max-width: 40rem;" title="${item.name}">
+            ${item.name}
+          </div>
+        </td>
+        <td class="text-center">
+          <input type="checkbox" class="form-check-input" disabled ${item.fixed_weight ? 'checked' : ''}>
+        </td>
+        <td class="text-end text-nowrap">${formatWeight(item.nominal_weight)}</td>
+        <td class="text-nowrap">${item.gtin}</td>
+        <td class="text-end">${item.units_per_box}</td>
+      `;
+      itemsTableBody.appendChild(row);
+    }
+  }
+
+  async function loadItems() {
+    setVisible(itemsLoading, true);
+    setVisible(itemsError, false);
+    setVisible(itemsEmpty, false);
+    setVisible(itemsTableWrapper, false);
+
+    try {
+      const response = await fetch(itemsApiUrl);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const items = await response.json();
+      setVisible(itemsLoading, false);
+
+      if (!Array.isArray(items) || items.length === 0) {
+        setVisible(itemsEmpty, true);
+        return;
+      }
+
+      renderItems(items);
+      setVisible(itemsTableWrapper, true);
+    } catch (error) {
+      setVisible(itemsLoading, false);
+      itemsError.textContent = 'Не удалось загрузить список продуктов.';
+      setVisible(itemsError, true);
+    }
+  }
+
+  loadItems();
+</script>
 {% endblock %}

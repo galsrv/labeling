@@ -30,7 +30,8 @@ class Settings(BaseSettings):
     REDOC_URL: str = '/api/redoc'
 
     API_URL_PREFIX: str = '/api/v1'
-    WEB_URL_PREFIX: str = '/web'
+    HTML_URL_PREFIX: str = '/web'
+    WEBSOCKET_URL_PREFIX: str = '/ws'
 
     WEB_TEMPLATE_DIR_PATH: str = '../static/templates'
 
@@ -66,7 +67,7 @@ class Settings(BaseSettings):
     SGTIN_LENGTH: int = 6
     CRYPTO_END_LENGTH: int = 4
 
-    SGTIN_INSERT_MAX_FILE_SIZE_BYTES: int = 100_000  # 100 KB
+    SGTIN_INSERT_MAX_FILE_SIZE_BYTES: int = 500_000  # 500 KB
 
     SGTIN_SHELF_LIFE: int = 30
 
@@ -115,6 +116,8 @@ class Settings(BaseSettings):
     MESSAGE_NUMBER_OF_LABELS_PRINTED: str = 'Напечатано этикеток:'
 
     MESSAGE_ORDER_WRONG_PRODUCTION_DATE: str = 'Некорректная дата производства'
+
+    MESSAGE_WRONG_WORKPLACE: str = 'Некорректно указано рабочее место'
 
 
 settings = Settings()

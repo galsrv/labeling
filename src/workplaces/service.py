@@ -7,7 +7,7 @@ from core.config import settings as s
 from core.exceptions import ObjectNotFound
 from workplaces.repository import workplaces_repo
 from workplaces.schemas import (
-    WorkplaceReadWebSchema,
+    WorkplaceReadSchema,
 )
 
 T = TypeVar('T', bound=BaseModel)
@@ -19,7 +19,7 @@ class WorkplacesService:
     async def get_all(self, session: AsyncSession) -> list[T]:
         """Возвращаем из БД все рабочие места."""
         workplaces = await workplaces_repo.get_all(session)
-        workplaces_dto = [WorkplaceReadWebSchema.model_validate(workplace) for workplace in workplaces]
+        workplaces_dto = [WorkplaceReadSchema.model_validate(workplace) for workplace in workplaces]
         return workplaces_dto
 
     async def get(self, session: AsyncSession, workplace_id: int) -> T:
@@ -29,7 +29,7 @@ class WorkplacesService:
         if workplace is None:
             raise ObjectNotFound(s.MESSAGE_ENTRY_DOESNT_EXIST)
 
-        workplace_dto = WorkplaceReadWebSchema.model_validate(workplace)
+        workplace_dto = WorkplaceReadSchema.model_validate(workplace)
         return workplace_dto
 
 

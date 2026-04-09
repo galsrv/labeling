@@ -7,50 +7,170 @@
     <h1 class="mb-0">Рабочие места</h1>
 </div>
 
-{% if all_workplaces and all_workplaces|length > 0 %}
-    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-        {% for wp in all_workplaces %}
-        <div class="col">
-            <div class="card h-100 shadow-sm">
-                <div class="card-body">
-                    <h5 class="card-title mb-3">
-                        🖥️ Рабочее место #{{ wp.id }}
-                    </h5>
+<div id="workplacesLoading" class="alert alert-secondary">
+    Загрузка...
+</div>
 
-                    <dl class="row mb-0">
-                        <dt class="col-5">Описание</dt>
-                        <dd class="col-7 mb-2">
-                            <span class="d-block text-truncate" title="{{ wp.description }}">
-                                {{ wp.description }}
-                            </span>
-                        </dd>
+<div id="workplacesError" class="alert alert-danger d-none"></div>
 
-                        <dt class="col-5">Весы</dt>
-                        <dd class="col-7 mb-0">
-                            {% if wp.scales %}
-                                <span class="d-block text-truncate" title="{{ wp.scales.description }}">
-                                    {{ wp.scales.description }}
-                                </span>
-                            {% else %}
-                                <span class="text-muted">не назначены</span>
-                            {% endif %}
-                        </dd>
-                    </dl>
-                </div>
+<div id="workplacesEmpty" class="alert alert-info d-none">
+    Рабочие места не найдены.
+</div>
 
-                <div class="card-footer bg-transparent border-0 pt-0">
-                    <div class="d-flex gap-2">
-                        <a href="#" class="btn btn-sm btn-outline-primary">Изменить</a>
-                        <a href="#" class="btn btn-sm btn-outline-danger">Удалить</a>
-                    </div>
-                </div>
+<div id="workplacesList" class="row row-cols-1 g-4 d-none"></div>
+
+<script>
+  const workplacesApiUrl = '/api/v1/workplaces/';
+  const workplacesLoading = document.getElementById('workplacesLoading');
+  const workplacesError = document.getElementById('workplacesError');
+  const workplacesEmpty = document.getElementById('workplacesEmpty');
+  const workplacesList = document.getElementById('workplacesList');
+
+  function setVisible(element, isVisible) {
+    element.classList.toggle('d-none', !isVisible);
+  }
+
+  function getCookie(name) {
+    const prefix = `${name}=`;
+    const cookies = document.cookie ? document.cookie.split(';') : [];
+
+    for (const rawCookie of cookies) {
+      const cookie = rawCookie.trim();
+      if (cookie.startsWith(prefix)) {
+        return decodeURIComponent(cookie.slice(prefix.length));
+      }
+    }
+
+    return null;
+  }
+
+  function setCookie(name, value) {
+    document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=31536000; samesite=lax`;
+  }
+
+  function renderDevice(device, emptyText) {
+    if (!device) {
+      return `<span class="text-muted">${emptyText}</span>`;
+    }
+
+    return `
+      <span class="d-block text-truncate" title="${device.description}">
+        ${device.description} (${device.ip})
+      </span>
+    `;
+  }
+
+  function renderWorkplaces(workplaces) {
+    workplacesList.innerHTML = '';
+
+    for (const wp of workplaces) {
+      const col = document.createElement('div');
+      col.className = 'col';
+      col.innerHTML = `
+        <div class="card h-100 shadow-sm workplace-card" data-workplace-id="${wp.id}">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+              <h5 class="card-title mb-0">🖥️ Рабочее место #${wp.id}</h5>
+              <span class="workplace-linked-indicator d-none" title="Текущее рабочее место">🔗</span>
             </div>
+
+            <dl class="row mb-0">
+              <dt class="col-5">Описание</dt>
+              <dd class="col-7 mb-2">
+                <span class="d-block text-truncate" title="${wp.description}">
+                  ${wp.description}
+                </span>
+              </dd>
+
+              <dt class="col-5">Весы</dt>
+              <dd class="col-7 mb-2">${renderDevice(wp.scales, 'не назначены')}</dd>
+
+              <dt class="col-5">Принтер 1</dt>
+              <dd class="col-7 mb-2">${renderDevice(wp.printer1, 'не назначен')}</dd>
+
+              <dt class="col-5">Принтер 2</dt>
+              <dd class="col-7 mb-2">${renderDevice(wp.printer2, 'не назначен')}</dd>
+            </dl>
+          </div>
+
+          <div class="card-footer bg-transparent border-0 pt-0">
+            <div class="d-flex gap-2">
+              <button type="button" class="btn btn-sm btn-primary workplace-bind-btn">
+                Привязать
+              </button>
+              <a href="#" class="btn btn-sm btn-outline-primary">Изменить</a>
+              <a href="#" class="btn btn-sm btn-outline-danger">Удалить</a>
+            </div>
+          </div>
         </div>
-        {% endfor %}
-    </div>
-{% else %}
-    <div class="alert alert-info">
-        Рабочие места не найдены.
-    </div>
-{% endif %}
+      `;
+      workplacesList.appendChild(col);
+    }
+  }
+
+  function refreshLinkedWorkplaceState() {
+    const linkedWorkplaceId = getCookie('workplace_id');
+    const cards = document.querySelectorAll('.workplace-card');
+
+    for (const card of cards) {
+      const workplaceId = card.dataset.workplaceId;
+      const indicator = card.querySelector('.workplace-linked-indicator');
+      const bindButton = card.querySelector('.workplace-bind-btn');
+
+      if (workplaceId === linkedWorkplaceId) {
+        indicator.classList.remove('d-none');
+        bindButton.classList.add('d-none');
+      } else {
+        indicator.classList.add('d-none');
+        bindButton.classList.remove('d-none');
+      }
+    }
+  }
+
+  function bindWorkplaceButtons() {
+    const bindButtons = document.querySelectorAll('.workplace-bind-btn');
+    for (const button of bindButtons) {
+      button.addEventListener('click', (event) => {
+        const card = event.currentTarget.closest('.workplace-card');
+        if (!card) return;
+
+        setCookie('workplace_id', card.dataset.workplaceId);
+        refreshLinkedWorkplaceState();
+      });
+    }
+  }
+
+  async function loadWorkplaces() {
+    setVisible(workplacesLoading, true);
+    setVisible(workplacesError, false);
+    setVisible(workplacesEmpty, false);
+    setVisible(workplacesList, false);
+
+    try {
+      const response = await fetch(workplacesApiUrl);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const workplaces = await response.json();
+      setVisible(workplacesLoading, false);
+
+      if (!Array.isArray(workplaces) || workplaces.length === 0) {
+        setVisible(workplacesEmpty, true);
+        return;
+      }
+
+      renderWorkplaces(workplaces);
+      bindWorkplaceButtons();
+      refreshLinkedWorkplaceState();
+      setVisible(workplacesList, true);
+    } catch (error) {
+      setVisible(workplacesLoading, false);
+      workplacesError.textContent = 'Не удалось загрузить список рабочих мест.';
+      setVisible(workplacesError, true);
+    }
+  }
+
+  loadWorkplaces();
+</script>
 {% endblock %}

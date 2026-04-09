@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from core.config import settings as s
 from core.exceptions import register_exception_handlers
 from core.log import logger
-from core.routers import api_router, root_router, web_router
+from core.routers import api_router, root_router, html_router, websocket_router
 
 fastapi_app = FastAPI(
     title=s.APP_TITLE,
@@ -14,8 +14,9 @@ fastapi_app = FastAPI(
 )
 
 fastapi_app.include_router(api_router)
-fastapi_app.include_router(web_router)
+fastapi_app.include_router(html_router)
 fastapi_app.include_router(root_router)
+fastapi_app.include_router(websocket_router)
 
 register_exception_handlers(fastapi_app)
 

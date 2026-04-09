@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% set is_create = (mode == 'create') %}
-{% set page_title = 'Создать весы' if is_create else ('Весы #' ~ scales.id) %}
+{% set page_title = 'Создать весы' if is_create else 'Весы' %}
 
 {% block title %}{{ page_title }}{% endblock %}
 
@@ -12,21 +12,30 @@
   </div>
 {% endif %}
 
+<div id="scalesEditLoading" class="alert alert-secondary">
+  Загрузка...
+</div>
+
+<div id="scalesEditError" class="alert alert-danger d-none"></div>
+<div id="scalesEditSuccess" class="alert alert-success d-none"></div>
+
 <form
-  action="{% if is_create %}{{ url_for('web_create_scales') }}{% else %}{{ url_for('web_update_scales', scales_id=scales.id) }}{% endif %}"
+  id="scalesForm"
+  action=""
   method="post"
   autocomplete="off"
+  class="d-none"
 >
   <div class="card shadow-sm">
     <div class="card-header d-flex justify-content-between align-items-center">
-      <div class="fw-semibold">{{ 'Создание весов' if is_create else 'Редактирование весов' }}</div>
+      <div class="fw-semibold" id="scalesFormTitle">{{ 'Создание весов' if is_create else 'Редактирование весов' }}</div>
     </div>
 
     <div class="card-body">
       <dl class="row mb-4">
         {% if not is_create %}
           <dt class="col-sm-3">ID</dt>
-          <dd class="col-sm-9">#{{ scales.id }}</dd>
+          <dd class="col-sm-9" id="scalesIdValue"></dd>
         {% endif %}
 
         <dt class="col-sm-3">IP</dt>
@@ -36,9 +45,7 @@
               id="ipDisplay"
               role="button"
               title="Нажмите, чтобы изменить"
-            >
-              {{ scales.ip }}
-            </span>
+            ></span>
           {% endif %}
 
           <input
@@ -46,7 +53,7 @@
             name="ip"
             class="form-control {% if not is_create %}d-none mt-2{% endif %}"
             type="text"
-            value="{{ '' if is_create else scales.ip }}"
+            value=""
             maxlength="64"
             required
           >
@@ -64,9 +71,7 @@
               id="portDisplay"
               role="button"
               title="Нажмите, чтобы изменить"
-            >
-              {{ scales.port }}
-            </span>
+            ></span>
           {% endif %}
 
           <input
@@ -76,7 +81,7 @@
             type="number"
             min="1"
             max="65535"
-            value="{{ '' if is_create else scales.port }}"
+            value=""
             required
           >
           {% if not is_create %}
@@ -89,16 +94,7 @@
         <dt class="col-sm-3">Драйвер</dt>
         <dd class="col-sm-9">
           <div style="max-width: 22rem;">
-            <select class="form-select" name="driver_name" required>
-              {% for d in drivers %}
-                <option
-                  value="{{ d }}"
-                  {% if (not is_create and scales.driver_name == d) %}selected{% endif %}
-                >
-                  {{ d }}
-                </option>
-              {% endfor %}
-            </select>
+            <select class="form-select" name="driver_name" id="driverSelect" required></select>
           </div>
         </dd>
 
@@ -109,9 +105,7 @@
               id="descriptionDisplay"
               role="button"
               title="Нажмите, чтобы изменить"
-            >
-              {{ scales.description }}
-            </span>
+            ></span>
           {% endif %}
 
           <input
@@ -119,7 +113,7 @@
             name="description"
             class="form-control {% if not is_create %}d-none mt-2{% endif %}"
             type="text"
-            value="{{ '' if is_create else scales.description }}"
+            value=""
             maxlength="255"
           >
           {% if not is_create %}
@@ -142,7 +136,7 @@
         <button
           type="submit"
           class="btn btn-sm btn-outline-danger"
-          formaction="{{ url_for('web_delete_scales', scales_id=scales.id) }}"
+          id="deleteScalesBtn"
           formmethod="post"
           formnovalidate
           onclick="return confirm('Удалить весы?');"
@@ -155,34 +149,101 @@
 </form>
 
 {% if not is_create %}
-  <div class="card shadow-sm">
-    <div class="card-body">
-      <div class="fw-semibold mb-2">Получить вес</div>
-      <div class="d-flex align-items-center gap-2">
-        <button type="button" class="btn btn-outline-primary" id="getWeightBtn">
-          Получить
-        </button>
-        <span class="small" id="getWeightStatus"></span>
+  <div id="scalesFeatures" class="d-none">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <div class="fw-semibold mb-2">Получить вес</div>
+        <div class="d-flex align-items-center gap-2">
+          <button type="button" class="btn btn-outline-primary" id="getWeightBtn">
+            Получить
+          </button>
+          <span class="small" id="getWeightStatus"></span>
+        </div>
       </div>
     </div>
-  </div>
 
-  <div class="card shadow-sm">
-    <div class="card-body">
-      <div class="fw-semibold mb-2">Стрим веса</div>
-      <div class="d-flex align-items-center gap-2">
-        <button type="button" class="btn btn-outline-primary" id="weightStreamBtn">
-          Подключиться
-        </button>
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <div class="fw-semibold mb-2">Стрим веса</div>
+        <div class="d-flex align-items-center gap-2">
+          <button type="button" class="btn btn-outline-primary" id="weightStreamBtn">
+            Подключиться
+          </button>
+        </div>
+        <div class="small mt-2" id="weightStreamStatus"></div>
+        <div class="mt-2" id="weightStreamLog"></div>
       </div>
-      <div class="small mt-2" id="weightStreamStatus"></div>
-      <div class="mt-2" id="weightStreamLog"></div>
     </div>
   </div>
 {% endif %}
 
 <script>
   const isCreate = {{ 'true' if is_create else 'false' }};
+  const scalesId = {{ request.path_params.get('scales_id', 0) if not is_create else 0 }};
+
+  const scalesEditLoading = document.getElementById('scalesEditLoading');
+  const scalesEditError = document.getElementById('scalesEditError');
+  const scalesEditSuccess = document.getElementById('scalesEditSuccess');
+  const scalesForm = document.getElementById('scalesForm');
+  const scalesFeatures = document.getElementById('scalesFeatures');
+
+  const ipInput = document.getElementById('ipInput');
+  const portInput = document.getElementById('portInput');
+  const descriptionInput = document.getElementById('descriptionInput');
+  const driverSelect = document.getElementById('driverSelect');
+
+  const ipDisplay = document.getElementById('ipDisplay');
+  const portDisplay = document.getElementById('portDisplay');
+  const descriptionDisplay = document.getElementById('descriptionDisplay');
+  const scalesIdValue = document.getElementById('scalesIdValue');
+  const deleteScalesBtn = document.getElementById('deleteScalesBtn');
+
+  const getWeightBtn = document.getElementById('getWeightBtn');
+  const getWeightStatus = document.getElementById('getWeightStatus');
+  const weightStreamBtn = document.getElementById('weightStreamBtn');
+  const weightStreamStatus = document.getElementById('weightStreamStatus');
+  const weightStreamLog = document.getElementById('weightStreamLog');
+
+  const driversApiUrl = '/api/v1/drivers/scales';
+  const scalesApiBaseUrl = '/api/v1/scales/';
+  const getWeightUrl = `${scalesApiBaseUrl}${scalesId}/get_weight`;
+  const weightStreamPath = `/ws/scakes/${scalesId}/ws_get_weight_stream/`;
+  const scalesListUrl = '{{ url_for("web_get_all_scales") }}';
+
+  function setVisible(element, isVisible) {
+    if (!element) return;
+    element.classList.toggle('d-none', !isVisible);
+  }
+
+  function setError(message) {
+    setVisible(scalesEditSuccess, false);
+    scalesEditError.textContent = message;
+    setVisible(scalesEditError, true);
+    setVisible(scalesEditLoading, false);
+    setVisible(scalesForm, false);
+    setVisible(scalesFeatures, false);
+  }
+
+  function showWarning(message) {
+    setVisible(scalesEditSuccess, false);
+    scalesEditError.textContent = message;
+    setVisible(scalesEditError, true);
+  }
+
+  function showSuccess(message) {
+    setVisible(scalesEditError, false);
+    scalesEditSuccess.textContent = message;
+    setVisible(scalesEditSuccess, true);
+  }
+
+  function setStatus(el, ok, message) {
+    if (!el) return;
+    el.className = 'small';
+    if (ok === true) el.classList.add('text-success');
+    else if (ok === false) el.classList.add('text-danger');
+    else el.classList.add('text-muted');
+    el.textContent = message || '';
+  }
 
   function setupInlineEdit(displayId, inputId, hintId) {
     if (isCreate) return;
@@ -191,9 +252,9 @@
     const hint = document.getElementById(hintId);
 
     function openEdit() {
-      display.classList.add("d-none");
-      input.classList.remove("d-none");
-      hint.classList.remove("d-none");
+      display.classList.add('d-none');
+      input.classList.remove('d-none');
+      hint.classList.remove('d-none');
       input.focus();
       input.select();
     }
@@ -204,88 +265,244 @@
       } else {
         input.value = display.textContent.trim();
       }
-      input.classList.add("d-none");
-      hint.classList.add("d-none");
-      display.classList.remove("d-none");
+      input.classList.add('d-none');
+      hint.classList.add('d-none');
+      display.classList.remove('d-none');
     }
 
-    display.addEventListener("click", openEdit);
-    input.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") { e.preventDefault(); closeEdit(true); }
-      if (e.key === "Escape") { e.preventDefault(); closeEdit(false); }
+    display.addEventListener('click', openEdit);
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); closeEdit(true); }
+      if (e.key === 'Escape') { e.preventDefault(); closeEdit(false); }
     });
-    input.addEventListener("blur", () => closeEdit(true));
+    input.addEventListener('blur', () => closeEdit(true));
   }
 
-  setupInlineEdit("ipDisplay", "ipInput", "ipHint");
-  setupInlineEdit("portDisplay", "portInput", "portHint");
-  setupInlineEdit("descriptionDisplay", "descriptionInput", "descriptionHint");
+  function populateDrivers(drivers, selectedDriverName = '') {
+    driverSelect.innerHTML = '';
 
-  const ipInput = document.getElementById("ipInput");
-  const portInput = document.getElementById("portInput");
-  const driverSelect = document.querySelector('select[name="driver_name"]');
-
-  const getWeightBtn = document.getElementById("getWeightBtn");
-  const getWeightStatus = document.getElementById("getWeightStatus");
-  const getWeightUrl = "{{ url_for('web_scales_get_weight') }}";
-  const weightStreamBtn = document.getElementById("weightStreamBtn");
-  const weightStreamStatus = document.getElementById("weightStreamStatus");
-  const weightStreamLog = document.getElementById("weightStreamLog");
-  const weightStreamPath = new URL("{{ url_for('websocket_get_weight_stream') }}").pathname;
-
-  function setStatus(el, ok, message) {
-    if (!el) return;
-    el.className = "small";
-    if (ok === true) el.classList.add("text-success");
-    else if (ok === false) el.classList.add("text-danger");
-    else el.classList.add("text-muted");
-    el.textContent = message || "";
+    for (const driverName of drivers) {
+      const option = document.createElement('option');
+      option.value = driverName;
+      option.textContent = driverName;
+      if (driverName === selectedDriverName) {
+        option.selected = true;
+      }
+      driverSelect.appendChild(option);
+    }
   }
 
-  if (getWeightBtn) getWeightBtn.addEventListener("click", async () => {
-    setStatus(getWeightStatus, null, "Запрос...");
+  function populateScales(scales) {
+    if (scalesIdValue) scalesIdValue.textContent = `#${scales.id}`;
+
+    ipInput.value = scales.ip || '';
+    portInput.value = scales.port ?? '';
+    descriptionInput.value = scales.description || '';
+
+    if (ipDisplay) ipDisplay.textContent = scales.ip || '';
+    if (portDisplay) portDisplay.textContent = scales.port ?? '';
+    if (descriptionDisplay) descriptionDisplay.textContent = scales.description || '';
+  }
+
+  async function fetchJson(url) {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    return await response.json();
+  }
+
+  async function parseApiError(response, fallbackMessage) {
+    try {
+      const data = await response.json();
+      if (data && typeof data === 'object') {
+        if (typeof data.detail === 'string') {
+          return data.detail;
+        }
+        if (Array.isArray(data.detail) && data.detail.length > 0) {
+          const first = data.detail[0];
+          if (first && typeof first.msg === 'string') {
+            return first.msg;
+          }
+        }
+        if (typeof data.message === 'string') {
+          return data.message;
+        }
+      }
+    } catch (_) {
+      // ignore parsing error
+    }
+    return fallbackMessage;
+  }
+
+  function buildPayload() {
+    return {
+      ip: ipInput.value.trim(),
+      port: Number(portInput.value),
+      description: descriptionInput.value.trim(),
+      driver_name: driverSelect.value || '',
+    };
+  }
+
+  function persistFlashAndRedirect(ok, message) {
+    sessionStorage.setItem('scalesFlash', JSON.stringify({ ok, message }));
+    window.location.href = scalesListUrl;
+  }
+
+  async function loadFormData() {
+    try {
+      const drivers = await fetchJson(driversApiUrl);
+      let scales = null;
+
+      if (!isCreate) {
+        scales = await fetchJson(`${scalesApiBaseUrl}${scalesId}`);
+      }
+
+      populateDrivers(drivers, scales ? scales.driver_name : '');
+
+      if (scales) {
+        populateScales(scales);
+      }
+
+      setupInlineEdit('ipDisplay', 'ipInput', 'ipHint');
+      setupInlineEdit('portDisplay', 'portInput', 'portHint');
+      setupInlineEdit('descriptionDisplay', 'descriptionInput', 'descriptionHint');
+
+      setVisible(scalesEditLoading, false);
+      setVisible(scalesForm, true);
+      setVisible(scalesFeatures, !isCreate);
+    } catch (error) {
+      if (error instanceof Error && error.message === 'HTTP 404') {
+        setError('Объект не найден.');
+      } else {
+        setError('Не удалось загрузить данные формы.');
+      }
+    }
+  }
+
+  scalesForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    setVisible(scalesEditError, false);
+    setVisible(scalesEditSuccess, false);
+
+    const submitBtn = scalesForm.querySelector('button[type="submit"]');
+    if (submitBtn) submitBtn.disabled = true;
+    if (deleteScalesBtn) deleteScalesBtn.disabled = true;
+
+    try {
+      const response = await fetch(
+        isCreate ? scalesApiBaseUrl : `${scalesApiBaseUrl}${scalesId}`,
+        {
+          method: isCreate ? 'POST' : 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(buildPayload()),
+        }
+      );
+
+      if (!response.ok) {
+        const message = await parseApiError(response, 'Не удалось сохранить данные весов.');
+        showWarning(message);
+        return;
+      }
+
+      const data = await response.json();
+      const message = isCreate
+        ? `Весы #${data.id} созданы.`
+        : `Весы #${data.id} сохранены.`;
+      showSuccess(message);
+      persistFlashAndRedirect(true, message);
+    } catch (_) {
+      showWarning('Не удалось сохранить данные весов.');
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
+      if (deleteScalesBtn) deleteScalesBtn.disabled = false;
+    }
+  });
+
+  if (deleteScalesBtn) {
+    deleteScalesBtn.addEventListener('click', async (event) => {
+      event.preventDefault();
+      setVisible(scalesEditError, false);
+      setVisible(scalesEditSuccess, false);
+
+      const submitBtn = scalesForm.querySelector('button[type="submit"]');
+      deleteScalesBtn.disabled = true;
+      if (submitBtn) submitBtn.disabled = true;
+
+      try {
+        const response = await fetch(`${scalesApiBaseUrl}${scalesId}`, {
+          method: 'DELETE',
+        });
+
+        if (!response.ok) {
+          const message = await parseApiError(response, 'Не удалось удалить весы.');
+          showWarning(message);
+          return;
+        }
+
+        const message = `Весы #${scalesId} удалены.`;
+        showSuccess(message);
+        persistFlashAndRedirect(true, message);
+      } catch (_) {
+        showWarning('Не удалось удалить весы.');
+      } finally {
+        deleteScalesBtn.disabled = false;
+        if (submitBtn) submitBtn.disabled = false;
+      }
+    });
+  }
+
+  if (getWeightBtn) getWeightBtn.addEventListener('click', async () => {
+    setStatus(getWeightStatus, null, 'Запрос...');
     getWeightBtn.disabled = true;
 
     try {
-      const formData = new FormData();
-      formData.append("ip", ipInput.value.trim());
-      formData.append("port", String(portInput.value));
-      formData.append("driver_name", driverSelect.value || "");
-
-      const res = await fetch(getWeightUrl, {
-        method: "POST",
-        body: formData,
+      const params = new URLSearchParams({
+        ip: ipInput.value.trim(),
+        port: String(portInput.value),
+        driver_name: driverSelect.value || '',
       });
 
+      const res = await fetch(`${getWeightUrl}?${params.toString()}`);
+
+      if (!res.ok) {
+        const message = await parseApiError(res, 'Не удалось получить вес.');
+        setStatus(getWeightStatus, false, message);
+        return;
+      }
+
       const data = await res.json();
-      if (data && typeof data === "object") {
-        if (data.ok && data.data && typeof data.data === "object") {
-          setStatus(getWeightStatus, true, String(data.data.weight));
-        } else {
-          setStatus(getWeightStatus, false, data.message || "Ошибка");
-        }
+      if (!data || typeof data !== 'object') {
+        setStatus(getWeightStatus, false, 'Ошибка ответа сервера.');
+        return;
+      }
+
+      if (data.ok && data.data && typeof data.data === 'object') {
+        setStatus(getWeightStatus, true, String(data.data.weight));
       } else {
-        setStatus(getWeightStatus, false, "Ошибка ответа сервера.");
+        setStatus(getWeightStatus, false, data.message || 'Ошибка');
       }
     } catch (e) {
-      setStatus(getWeightStatus, false, "Ошибка отправки (нет связи с сервером).");
+      setStatus(getWeightStatus, false, 'Ошибка отправки (нет связи с сервером).');
     } finally {
       getWeightBtn.disabled = false;
     }
   });
 
-  if (weightStreamBtn) weightStreamBtn.addEventListener("click", () => {
-    setStatus(weightStreamStatus, null, "Подключение...");
+  if (weightStreamBtn) weightStreamBtn.addEventListener('click', () => {
+    setStatus(weightStreamStatus, null, 'Подключение...');
     weightStreamBtn.disabled = true;
-    if (weightStreamLog) weightStreamLog.innerHTML = "";
+    if (weightStreamLog) weightStreamLog.innerHTML = '';
     const streamRows = [];
 
     function renderStream() {
       if (!weightStreamLog) return;
-      weightStreamLog.innerHTML = "";
+      weightStreamLog.innerHTML = '';
       for (const row of streamRows) {
-        const div = document.createElement("div");
-        div.className = `small ${row.isError ? "text-danger" : "text-muted"}`;
+        const div = document.createElement('div');
+        div.className = `small ${row.isError ? 'text-danger' : 'text-muted'}`;
         div.textContent = row.text;
         weightStreamLog.appendChild(div);
       }
@@ -298,25 +515,25 @@
     }
 
     try {
-      const wsProtocol = window.location.protocol === "https:" ? "wss" : "ws";
-      const wsUrl = `${wsProtocol}://${window.location.host}${weightStreamPath}?ip=${encodeURIComponent(ipInput.value.trim())}&port=${encodeURIComponent(portInput.value)}&driver_name=${encodeURIComponent(driverSelect.value || "")}`;
+      const wsProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+      const wsUrl = `${wsProtocol}://${window.location.host}${weightStreamPath}?ip=${encodeURIComponent(ipInput.value.trim())}&port=${encodeURIComponent(portInput.value)}&driver_name=${encodeURIComponent(driverSelect.value || '')}`;
       const socket = new WebSocket(wsUrl);
       const closeTimer = setTimeout(() => {
         if (socket.readyState === WebSocket.OPEN) {
-          socket.close(1000, "timeout");
+          socket.close(1000, 'timeout');
         }
       }, 10000);
 
-      socket.addEventListener("message", (event) => {
+      socket.addEventListener('message', (event) => {
         let data = event.data;
         try {
           data = JSON.parse(event.data);
         } catch (_) {
           data = event.data;
         }
-        if (typeof data === "string") {
+        if (typeof data === 'string') {
           const trimmed = data.trim();
-          if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+          if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
             try {
               data = JSON.parse(trimmed);
             } catch (_) {
@@ -325,41 +542,43 @@
           }
         }
 
-        if (data && typeof data === "object" && "ok" in data) {
+        if (data && typeof data === 'object' && 'ok' in data) {
           if (data.ok) {
-            const msg = data.message || (data.data && data.data.weight !== undefined ? String(data.data.weight) : "");
-            setStatus(weightStreamStatus, true, "Поток активен");
+            const msg = data.message || (data.data && data.data.weight !== undefined ? String(data.data.weight) : '');
+            setStatus(weightStreamStatus, true, 'Поток активен');
             if (msg) pushStreamRow(msg, false);
           } else {
-            const errMsg = data.message || "Ошибка";
+            const errMsg = data.message || 'Ошибка';
             setStatus(weightStreamStatus, false, errMsg);
             pushStreamRow(errMsg, true);
           }
         } else {
-          const rawMsg = String(event.data || "");
-          setStatus(weightStreamStatus, true, "Поток активен");
+          const rawMsg = String(event.data || '');
+          setStatus(weightStreamStatus, true, 'Поток активен');
           if (rawMsg) pushStreamRow(rawMsg, false);
         }
       });
 
-      socket.addEventListener("error", () => {
-        setStatus(weightStreamStatus, false, "Ошибка соединения.");
+      socket.addEventListener('error', () => {
+        setStatus(weightStreamStatus, false, 'Ошибка соединения.');
       });
 
-      socket.addEventListener("close", (event) => {
+      socket.addEventListener('close', (event) => {
         clearTimeout(closeTimer);
         if (event && event.code && event.code !== 1000 && event.reason) {
           setStatus(weightStreamStatus, false, event.reason);
           pushStreamRow(event.reason, true);
         } else {
-          setStatus(weightStreamStatus, null, "Поток завершен.");
+          setStatus(weightStreamStatus, null, 'Поток завершен.');
         }
         weightStreamBtn.disabled = false;
       });
     } catch (e) {
-      setStatus(weightStreamStatus, false, "Не удалось открыть WebSocket.");
+      setStatus(weightStreamStatus, false, 'Не удалось открыть WebSocket.');
       weightStreamBtn.disabled = false;
     }
   });
+
+  loadFormData();
 </script>
 {% endblock %}

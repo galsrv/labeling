@@ -1,101 +1,156 @@
 {% extends "base.html" %}
 
-{% block title %}Задание #{{ order.id }}{% endblock %}
+{% block title %}Задание{% endblock %}
 
 {% block content %}
-<div class="card shadow-sm">
-  <div class="card-header d-flex justify-content-between align-items-center">
-    <div class="fw-semibold">Задание #{{ order.id }}</div>
-
-    {% if order.status_label == 'Создано' %}
-      <span class="badge text-bg-secondary">Создано</span>
-    {% elif order.status_label == 'Активно' %}
-      <span class="badge text-bg-primary">Активно</span>
-    {% elif order.status_label == 'Закрыто' %}
-      <span class="badge text-bg-success">Закрыто</span>
-    {% else %}
-      <span class="badge text-bg-dark">{{ order.status_label }}</span>
-    {% endif %}
-  </div>
-
-  <div class="card-body">
-    <dl class="row mb-0">
-      <dt class="col-sm-4">Дата производства</dt>
-      <dd class="col-sm-8">{{ order.production_date_str }}</dd>
-
-      <dt class="col-sm-4">Продукт</dt>
-      <dd class="col-sm-8 fw-semibold">{{ order.item.name }}</dd>
-
-      <dt class="col-sm-4">Заказано</dt>
-      <dd class="col-sm-8">{{ order.ordered_kg_str }} кг</dd>
-
-      <dt class="col-sm-4">Произведено</dt>
-      <dd class="col-sm-8">{{ order.produced_kg_str }} кг</dd>
-
-      <dt class="col-sm-4">Прогресс</dt>
-      <dd class="col-sm-8">
-        <div class="d-flex align-items-center gap-2">
-          <div class="progress flex-grow-1" role="progressbar"
-               aria-valuenow="{{ order.progress_pct }}" aria-valuemin="0" aria-valuemax="100">
-            <div class="progress-bar {{ order.progress_bar_class }}" style="width: {{ order.progress_pct }}%"></div>
-          </div>
-          <span class="text-nowrap small">{{ order.progress_pct }}%</span>
-        </div>
-        <div class="text-muted small mt-1">
-          {{ order.produced_kg_str }} / {{ order.ordered_kg_str }} кг
-        </div>
-      </dd>
-    </dl>
-  </div>
-
-  <div class="card-footer bg-transparent d-flex justify-content-between align-items-center">
-    <a href="{{ url_for('read_orders') }}" class="btn btn-sm btn-outline-secondary">
-      ← Назад к списку заданий
-    </a>
-
-    {% if order.status_label == 'Закрыто' %}
-      <span class="text-muted small">Задание закрыто</span>
-    {% endif %}
-  </div>
+<div id="orderLoading" class="alert alert-secondary">
+  Загрузка...
 </div>
 
-<div class="card shadow-sm mt-4">
-  <div class="card-header">
-    <div class="fw-semibold">Пакетная печать этикеток</div>
-  </div>
+<div id="orderError" class="alert alert-danger d-none"></div>
 
-  <div class="card-body">
-    <div class="row g-3 align-items-end">
-      <div class="col-12 col-md-4">
-        <label for="numberToPrint" class="form-label">Количество</label>
-        <input
-          id="numberToPrint"
-          class="form-control"
-          type="number"
-          min="1"
-          max="1000"
-          step="1"
-          inputmode="numeric"
-          required
-        >
-      </div>
-
-      <div class="col-12 col-md-auto">
-        <button type="button" class="btn btn-primary" id="batchPrintBtn">
-          Напечатать
-        </button>
-      </div>
+<div id="orderContent" class="d-none">
+  <div class="card shadow-sm">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <div class="fw-semibold" id="orderTitle"></div>
+      <div id="orderStatusBadge"></div>
     </div>
 
-    <div class="small mt-3" id="batchPrintStatus"></div>
+    <div class="card-body">
+      <dl class="row mb-0">
+        <dt class="col-sm-4">Дата производства</dt>
+        <dd class="col-sm-8" id="orderProductionDate"></dd>
+
+        <dt class="col-sm-4">Продукт</dt>
+        <dd class="col-sm-8 fw-semibold" id="orderItemName"></dd>
+
+        <dt class="col-sm-4">Заказано</dt>
+        <dd class="col-sm-8" id="orderOrderedKg"></dd>
+
+        <dt class="col-sm-4">Произведено</dt>
+        <dd class="col-sm-8" id="orderProducedKg"></dd>
+
+        <dt class="col-sm-4">Прогресс</dt>
+        <dd class="col-sm-8">
+          <div class="d-flex align-items-center gap-2">
+            <div class="progress flex-grow-1" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+              <div class="progress-bar" id="orderProgressBar"></div>
+            </div>
+            <span class="text-nowrap small" id="orderProgressPct"></span>
+          </div>
+          <div class="text-muted small mt-1" id="orderProgressText"></div>
+        </dd>
+      </dl>
+    </div>
+
+    <div class="card-footer bg-transparent d-flex justify-content-between align-items-center">
+      <a href="{{ url_for('read_orders') }}" class="btn btn-sm btn-outline-secondary">
+        ← Назад к списку заданий
+      </a>
+
+      <span class="text-muted small d-none" id="orderClosedText">Задание закрыто</span>
+    </div>
+  </div>
+
+  <div class="card shadow-sm mt-4">
+    <div class="card-header">
+      <div class="fw-semibold">Пакетная печать этикеток</div>
+    </div>
+
+    <div class="card-body">
+      <div class="row g-3 align-items-end">
+        <div class="col-12 col-md-4">
+          <label for="numberToPrint" class="form-label">Количество</label>
+          <input
+            id="numberToPrint"
+            class="form-control"
+            type="number"
+            min="1"
+            max="1000"
+            step="1"
+            inputmode="numeric"
+            required
+          >
+        </div>
+
+        <div class="col-12 col-md-auto">
+          <button type="button" class="btn btn-primary" id="batchPrintBtn">
+            Напечатать
+          </button>
+        </div>
+      </div>
+
+      <div class="small mt-3" id="batchPrintStatus"></div>
+    </div>
   </div>
 </div>
 
 <script>
+  const orderId = {{ request.path_params.get('order_id', 0) }};
+  const orderApiUrl = `/api/v1/orders/${orderId}`;
+  const batchPrintUrl = `/api/v1/orders/${orderId}/sgtin_batch_print`;
+
+  const orderLoading = document.getElementById('orderLoading');
+  const orderError = document.getElementById('orderError');
+  const orderContent = document.getElementById('orderContent');
+  const orderTitle = document.getElementById('orderTitle');
+  const orderStatusBadge = document.getElementById('orderStatusBadge');
+  const orderProductionDate = document.getElementById('orderProductionDate');
+  const orderItemName = document.getElementById('orderItemName');
+  const orderOrderedKg = document.getElementById('orderOrderedKg');
+  const orderProducedKg = document.getElementById('orderProducedKg');
+  const orderProgressBar = document.getElementById('orderProgressBar');
+  const orderProgressPct = document.getElementById('orderProgressPct');
+  const orderProgressText = document.getElementById('orderProgressText');
+  const orderClosedText = document.getElementById('orderClosedText');
   const batchPrintBtn = document.getElementById('batchPrintBtn');
   const batchPrintStatus = document.getElementById('batchPrintStatus');
   const numberToPrintInput = document.getElementById('numberToPrint');
-  const batchPrintUrl = '{{ url_for("web_orders_sgtin_batch_print", order_id=order.id) }}';
+
+  function setVisible(element, isVisible) {
+    if (!element) return;
+    element.classList.toggle('d-none', !isVisible);
+  }
+
+  function formatDate(value) {
+    if (!value) return '—';
+    const [year, month, day] = String(value).split('-');
+    if (!year || !month || !day) return value;
+    return `${day}.${month}.${year}`;
+  }
+
+  function formatKg(value) {
+    const number = Number(value || 0);
+    return `${number.toFixed(3)} кг`;
+  }
+
+  function getProgressPct(order) {
+    const ordered = Number(order.ordered_kg || 0);
+    const produced = Number(order.produced_kg || 0);
+    if (ordered <= 0) return 0;
+    const pct = Math.round((produced / ordered) * 100);
+    return Math.max(0, Math.min(100, pct));
+  }
+
+  function getProgressBarClass(status) {
+    if (status === 'CLOSED') return 'bg-success';
+    if (status === 'ACTIVE') return '';
+    return 'bg-secondary';
+  }
+
+  function renderStatusBadge(status) {
+    if (status === 'CREATED') return '<span class="badge text-bg-secondary">Создано</span>';
+    if (status === 'ACTIVE') return '<span class="badge text-bg-primary">Активно</span>';
+    if (status === 'CLOSED') return '<span class="badge text-bg-success">Закрыто</span>';
+    return `<span class="badge text-bg-dark">${status}</span>`;
+  }
+
+  function setError(message) {
+    orderError.textContent = message;
+    setVisible(orderError, true);
+    setVisible(orderLoading, false);
+    setVisible(orderContent, false);
+  }
 
   function setBatchPrintStatus(ok, message) {
     batchPrintStatus.className = 'small mt-3';
@@ -103,6 +158,66 @@
     else if (ok === false) batchPrintStatus.classList.add('text-danger');
     else batchPrintStatus.classList.add('text-muted');
     batchPrintStatus.textContent = message || '';
+  }
+
+  async function parseApiError(response, fallbackMessage) {
+    try {
+      const data = await response.json();
+      if (data && typeof data === 'object') {
+        if (typeof data.detail === 'string') {
+          return data.detail;
+        }
+        if (Array.isArray(data.detail) && data.detail.length > 0) {
+          const first = data.detail[0];
+          if (first && typeof first.msg === 'string') {
+            return first.msg;
+          }
+        }
+        if (typeof data.message === 'string') {
+          return data.message;
+        }
+      }
+    } catch (_) {
+      // ignore
+    }
+    return fallbackMessage;
+  }
+
+  function renderOrder(order) {
+    const progressPct = getProgressPct(order);
+
+    orderTitle.textContent = `Задание #${order.id}`;
+    orderStatusBadge.innerHTML = renderStatusBadge(order.status);
+    orderProductionDate.textContent = formatDate(order.production_date);
+    orderItemName.textContent = order.item?.name || '—';
+    orderOrderedKg.textContent = formatKg(order.ordered_kg);
+    orderProducedKg.textContent = formatKg(order.produced_kg);
+    orderProgressBar.className = `progress-bar ${getProgressBarClass(order.status)}`;
+    orderProgressBar.style.width = `${progressPct}%`;
+    orderProgressBar.setAttribute('aria-valuenow', String(progressPct));
+    orderProgressPct.textContent = `${progressPct}%`;
+    orderProgressText.textContent = `${Number(order.produced_kg || 0).toFixed(3)} / ${Number(order.ordered_kg || 0).toFixed(3)} кг`;
+    setVisible(orderClosedText, order.status === 'CLOSED');
+  }
+
+  async function loadOrder() {
+    try {
+      const response = await fetch(orderApiUrl);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const order = await response.json();
+      renderOrder(order);
+      setVisible(orderLoading, false);
+      setVisible(orderContent, true);
+    } catch (error) {
+      if (error instanceof Error && error.message === 'HTTP 404') {
+        setError('Объект не найден.');
+      } else {
+        setError('Не удалось загрузить данные задания.');
+      }
+    }
   }
 
   batchPrintBtn.addEventListener('click', async () => {
@@ -128,17 +243,25 @@
         body: formData,
       });
 
+      if (!response.ok) {
+        const message = await parseApiError(response, 'Не удалось выполнить пакетную печать.');
+        setBatchPrintStatus(false, message);
+        return;
+      }
+
       const data = await response.json();
       if (data && typeof data.ok === 'boolean') {
         setBatchPrintStatus(data.ok, data.message || String(data.ok));
       } else {
         setBatchPrintStatus(false, 'Некорректный ответ сервера.');
       }
-    } catch (error) {
+    } catch (_) {
       setBatchPrintStatus(false, 'Ошибка отправки.');
     } finally {
       batchPrintBtn.disabled = false;
     }
   });
+
+  loadOrder();
 </script>
 {% endblock %}

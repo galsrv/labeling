@@ -37,7 +37,7 @@
   const uploadSgtinsBtn = document.getElementById('uploadSgtinsBtn');
   const uploadSgtinsStatus = document.getElementById('uploadSgtinsStatus');
   const sgtinFileInput = document.getElementById('sgtinFile');
-  const batchInsertUrl = '{{ url_for("web_sgtin_batch_insert") }}';
+  const batchInsertUrl = '/api/v1/sgtins/sgtin_batch_insert';
 
   function setStatus(ok, message) {
     uploadSgtinsStatus.className = 'small';

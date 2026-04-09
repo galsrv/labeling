@@ -1,17 +1,19 @@
 {% extends "base.html" %}
 
 {% set is_create = (mode == 'create') %}
-{% set page_title = 'Создать шаблон этикетки' if is_create else ('Шаблон этикетки #' ~ label.id) %}
+{% set page_title = 'Создать шаблон этикетки' if is_create else 'Шаблон этикетки' %}
 
 {% block title %}{{ page_title }}{% endblock %}
 
 {% block content %}
-<form
-  action="{% if is_create %}{{ url_for('web_create_label') }}{% else %}{{ url_for('web_update_label', label_id=label.id) }}{% endif %}"
-  method="post"
-  autocomplete="off"
->
+<div id="labelEditLoading" class="alert alert-secondary">
+  Загрузка...
+</div>
 
+<div id="labelEditError" class="alert alert-danger d-none"></div>
+<div id="labelEditSuccess" class="alert alert-success d-none"></div>
+
+<form id="labelForm" autocomplete="off" class="d-none">
   <div class="card shadow-sm">
     <div class="card-header d-flex justify-content-between align-items-center">
       <div class="fw-semibold">{{ 'Создание шаблона' if is_create else 'Редактирование шаблона' }}</div>
@@ -21,29 +23,21 @@
       <dl class="row mb-4">
         {% if not is_create %}
           <dt class="col-sm-3">ID</dt>
-          <dd class="col-sm-9">#{{ label.id }}</dd>
+          <dd class="col-sm-9" id="labelIdValue"></dd>
         {% endif %}
 
         <dt class="col-sm-3">Наименование</dt>
         <dd class="col-sm-9">
-          <!-- View mode (only for edit) -->
           {% if not is_create %}
-            <span
-              id="nameDisplay"
-              role="button"
-              title="Нажмите, чтобы изменить"
-            >
-              {{ label.name }}
-            </span>
+            <span id="nameDisplay" role="button" title="Нажмите, чтобы изменить"></span>
           {% endif %}
 
-          <!-- Edit mode (always has input for form submit) -->
           <input
             id="nameInput"
             name="name"
             class="form-control {% if not is_create %}d-none mt-2{% endif %}"
             type="text"
-            value="{{ '' if is_create else label.name }}"
+            value=""
             maxlength="255"
             required
           >
@@ -57,16 +51,7 @@
         <dt class="col-sm-3">Драйвер</dt>
         <dd class="col-sm-9">
           <div style="max-width: 22rem;">
-            <select class="form-select" name="driver_name" required>
-              {% for d in drivers %}
-                <option
-                  value="{{ d }}"
-                  {% if (not is_create and label.driver_name == d) %}selected{% endif %}
-                >
-                  {{ d }}
-                </option>
-              {% endfor %}
-            </select>
+            <select class="form-select" name="driver_name" id="driverSelect" required></select>
           </div>
         </dd>
       </dl>
@@ -78,45 +63,18 @@
         </button>
       </div>
 
-      <!-- Control codes (dynamic) -->
-      <div class="d-flex flex-wrap gap-2 mb-2">
-        {% for token in control_codes %}
-          <button
-            type="button"
-            class="btn btn-sm btn-outline-primary"
-            data-token="{{ token }}"
-            title="Вставить {{ token }}"
-          >
-            {{ token }}
-          </button>
-        {% endfor %}
-      </div>
+      <div class="d-flex flex-wrap gap-2 mb-2" id="controlCodesButtons"></div>
+      <div class="d-flex flex-wrap gap-2 mb-2" id="labelVariablesButtons"></div>
 
-      <!-- Label variables (dynamic, slightly different tone) -->
-      <div class="d-flex flex-wrap gap-2 mb-2">
-        {% for token in label_variables %}
-          <button
-            type="button"
-            class="btn btn-sm btn-outline-success"
-            data-token="{{ token }}"
-            title="Вставить {{ token }}"
-          >
-            {{ token }}
-          </button>
-        {% endfor %}
-      </div>
-
-      <!-- Textarea stays for form submission; CodeMirror replaces it -->
       <textarea
         id="printCommand"
         name="print_command"
         class="form-control"
         rows="6"
         spellcheck="false"
-      >{{ '' if is_create else (label.print_command or '') }}</textarea>
+      ></textarea>
     </div>
 
-    <!-- test print -->
     <hr class="my-4">
 
     <div class="border rounded p-3 bg-light">
@@ -125,20 +83,12 @@
       <div class="row g-3 align-items-end">
         <div class="col-12 col-md-5">
           <label for="testItem" class="form-label">Продукт</label>
-          <select id="testItem" class="form-select">
-            {% for it in items %}
-              <option value="{{ it.id }}">{{ it.name }}</option>
-            {% endfor %}
-          </select>
+          <select id="testItem" class="form-select"></select>
         </div>
 
         <div class="col-12 col-md-4">
           <label for="testPrinter" class="form-label">Принтер</label>
-          <select id="testPrinter" class="form-select">
-            {% for p in printers %}
-              <option value="{{ p.id }}">{{ p.ip }} - {{ p.description }}</option>
-            {% endfor %}
-          </select>
+          <select id="testPrinter" class="form-select"></select>
         </div>
 
         <div class="col-12 col-md-3 d-grid">
@@ -158,41 +108,157 @@
         Назад
       </a>
 
-    {% if not is_create %}
-      <button
-        type="submit"
-        class="btn btn-sm btn-outline-danger"
-        formaction="{{ url_for('web_delete_label', label_id=label.id) }}"
-        formmethod="post"
-        formnovalidate
-        onclick="return confirm('Удалить шаблон этикетки?');"
-      >
-        Удалить
-      </button>
-    {% endif %}
-
-
+      {% if not is_create %}
+        <button
+          type="submit"
+          class="btn btn-sm btn-outline-danger"
+          id="deleteLabelBtn"
+          formmethod="post"
+          formnovalidate
+          onclick="return confirm('Удалить шаблон этикетки?');"
+        >
+          Удалить
+        </button>
+      {% endif %}
     </div>
   </div>
 </form>
 
-<!-- CodeMirror 5 (CDN) -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/lib/codemirror.min.css">
 <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/lib/codemirror.min.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/theme/eclipse.min.css">
 
 <script>
-  /* ---------- Name: click-to-edit (edit mode only) ---------- */
   const isCreate = {{ 'true' if is_create else 'false' }};
-  if (!isCreate) {
-    const nameDisplay = document.getElementById("nameDisplay");
-    const nameInput = document.getElementById("nameInput");
-    const nameHint = document.getElementById("nameHint");
+  const labelId = {{ request.path_params.get('label_id', 0) if not is_create else 0 }};
+
+  const labelEditLoading = document.getElementById('labelEditLoading');
+  const labelEditError = document.getElementById('labelEditError');
+  const labelEditSuccess = document.getElementById('labelEditSuccess');
+  const labelForm = document.getElementById('labelForm');
+  const labelIdValue = document.getElementById('labelIdValue');
+  const deleteLabelBtn = document.getElementById('deleteLabelBtn');
+  const nameDisplay = document.getElementById('nameDisplay');
+  const nameInput = document.getElementById('nameInput');
+  const nameHint = document.getElementById('nameHint');
+  const driverSelect = document.getElementById('driverSelect');
+  const controlCodesButtons = document.getElementById('controlCodesButtons');
+  const labelVariablesButtons = document.getElementById('labelVariablesButtons');
+  const testBtn = document.getElementById('testPrintBtn');
+  const testStatus = document.getElementById('testPrintStatus');
+  const testItem = document.getElementById('testItem');
+  const testPrinter = document.getElementById('testPrinter');
+  const copyBtn = document.getElementById('copyBtn');
+
+  const labelsApiBaseUrl = '/api/v1/labels/';
+  const driversApiUrl = '/api/v1/drivers/printers';
+  const itemsApiUrl = '/api/v1/items/';
+  const printersApiUrl = '/api/v1/printers/';
+  const controlCodesApiUrl = '/api/v1/labels/control_codes';
+  const labelVariablesApiUrl = '/api/v1/labels/variables';
+  const labelsListUrl = '{{ url_for("web_get_all_labels") }}';
+  const labelEditUrlTemplate = '{{ url_for("web_update_label_form", label_id=0) }}';
+  const testPrintUrl = `${labelsApiBaseUrl}print_label_test`;
+  const minEditorLines = 10;
+
+  function setVisible(element, isVisible) {
+    if (!element) return;
+    element.classList.toggle('d-none', !isVisible);
+  }
+
+  function setError(message) {
+    setVisible(labelEditSuccess, false);
+    labelEditError.textContent = message;
+    setVisible(labelEditError, true);
+    setVisible(labelEditLoading, false);
+    setVisible(labelForm, false);
+  }
+
+  function showWarning(message) {
+    setVisible(labelEditSuccess, false);
+    labelEditError.textContent = message;
+    setVisible(labelEditError, true);
+  }
+
+  function showSuccess(message) {
+    setVisible(labelEditError, false);
+    labelEditSuccess.textContent = message;
+    setVisible(labelEditSuccess, true);
+  }
+
+  function setStatus(message, kind) {
+    testStatus.className = 'mt-3 small';
+    if (kind === 'ok') testStatus.classList.add('text-success');
+    else if (kind === 'err') testStatus.classList.add('text-danger');
+    else testStatus.classList.add('text-muted');
+    testStatus.textContent = message;
+  }
+
+  function persistFlashAndRedirect(ok, message) {
+    sessionStorage.setItem('labelsFlash', JSON.stringify({ ok, message }));
+    window.location.href = labelsListUrl;
+  }
+
+  function showFlashMessage() {
+    const raw = sessionStorage.getItem('labelsFlash');
+    if (!raw) return;
+
+    sessionStorage.removeItem('labelsFlash');
+
+    try {
+      const flash = JSON.parse(raw);
+      if (flash.ok) {
+        showSuccess(flash.message || 'Операция выполнена.');
+      } else {
+        showWarning(flash.message || 'Не удалось выполнить операцию.');
+      }
+    } catch (_) {
+      showSuccess(raw);
+    }
+  }
+
+  function getLabelEditUrl(currentLabelId) {
+    return labelEditUrlTemplate.replace(/0$/, String(currentLabelId));
+  }
+
+  async function fetchJson(url) {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    return await response.json();
+  }
+
+  async function parseApiError(response, fallbackMessage) {
+    try {
+      const data = await response.json();
+      if (data && typeof data === 'object') {
+        if (typeof data.detail === 'string') {
+          return data.detail;
+        }
+        if (Array.isArray(data.detail) && data.detail.length > 0) {
+          const first = data.detail[0];
+          if (first && typeof first.msg === 'string') {
+            return first.msg;
+          }
+        }
+        if (typeof data.message === 'string') {
+          return data.message;
+        }
+      }
+    } catch (_) {
+      // ignore parsing error
+    }
+    return fallbackMessage;
+  }
+
+  function setupInlineEdit() {
+    if (isCreate || !nameDisplay || !nameInput || !nameHint) return;
 
     function openNameEdit() {
-      nameDisplay.classList.add("d-none");
-      nameInput.classList.remove("d-none");
-      nameHint.classList.remove("d-none");
+      nameDisplay.classList.add('d-none');
+      nameInput.classList.remove('d-none');
+      nameHint.classList.remove('d-none');
       nameInput.focus();
       nameInput.select();
     }
@@ -203,39 +269,47 @@
       } else {
         nameInput.value = nameDisplay.textContent;
       }
-      nameInput.classList.add("d-none");
-      nameHint.classList.add("d-none");
-      nameDisplay.classList.remove("d-none");
+      nameInput.classList.add('d-none');
+      nameHint.classList.add('d-none');
+      nameDisplay.classList.remove('d-none');
     }
 
-    nameDisplay.addEventListener("click", openNameEdit);
-    nameInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") { e.preventDefault(); closeNameEdit(true); }
-      if (e.key === "Escape") { e.preventDefault(); closeNameEdit(false); }
+    nameDisplay.addEventListener('click', openNameEdit);
+    nameInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        closeNameEdit(true);
+      }
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeNameEdit(false);
+      }
     });
-    nameInput.addEventListener("blur", () => closeNameEdit(true));
+    nameInput.addEventListener('blur', () => closeNameEdit(true));
   }
 
-  /* ---------- CodeMirror: custom highlighting ---------- */
-  CodeMirror.defineMode("printCommandMode", function() {
+  CodeMirror.defineMode('printCommandMode', function() {
     return {
       token: function(stream) {
-        // <...>
-        if (stream.peek() === "<") {
-          const s = stream.string.slice(stream.pos);
-          const m = s.match(/^<[^>]*>/);
-          if (m) { stream.pos += m[0].length; return "pc-angle"; }
+        if (stream.peek() === '<') {
+          const rest = stream.string.slice(stream.pos);
+          const match = rest.match(/^<[^>]*>/);
+          if (match) {
+            stream.pos += match[0].length;
+            return 'pc-angle';
+          }
         }
-        // {...}
-        if (stream.peek() === "{") {
-          const s = stream.string.slice(stream.pos);
-          const m = s.match(/^\{[^}]*\}/);
-          if (m) { stream.pos += m[0].length; return "pc-curly"; }
+        if (stream.peek() === '{') {
+          const rest = stream.string.slice(stream.pos);
+          const match = rest.match(/^\{[^}]*\}/);
+          if (match) {
+            stream.pos += match[0].length;
+            return 'pc-curly';
+          }
         }
-        // underscore
-        if (stream.peek() === "_") {
+        if (stream.peek() === '_') {
           stream.next();
-          return "pc-underscore";
+          return 'pc-underscore';
         }
         stream.next();
         return null;
@@ -243,56 +317,274 @@
     };
   });
 
-  const textarea = document.getElementById("printCommand");
+  const textarea = document.getElementById('printCommand');
   const editor = CodeMirror.fromTextArea(textarea, {
-    mode: "printCommandMode",
+    mode: 'printCommandMode',
     lineNumbers: true,
     lineWrapping: true,
-    theme: "eclipse",
+    theme: 'eclipse',
     indentUnit: 2,
     tabSize: 2,
-    viewportMargin: Infinity  // helps auto-grow height
+    viewportMargin: Infinity
   });
 
-  /* ---------- Auto-grow with content ---------- */
   function autoResize() {
     const scroller = editor.getScrollerElement();
-    scroller.style.height = "auto";
-    editor.setSize(null, scroller.scrollHeight);
+    const minHeight = editor.defaultTextHeight() * minEditorLines;
+    scroller.style.height = 'auto';
+    editor.setSize(null, Math.max(scroller.scrollHeight, minHeight));
   }
 
-  editor.on("change", () => {
-    editor.save();   // keep textarea synced for form submit
+  editor.on('change', () => {
+    editor.save();
     autoResize();
   });
 
   autoResize();
 
-  /* ---------- Token insertion (both rows) ---------- */
   function insertToken(token) {
     editor.focus();
-    editor.replaceSelection(token, "around");
+    editor.replaceSelection(token, 'around');
   }
 
-  document.querySelectorAll("[data-token]").forEach(btn => {
-    btn.addEventListener("click", () => insertToken(btn.getAttribute("data-token")));
-  });
+  function renderTokenButtons(container, tokens, buttonClass) {
+    container.innerHTML = '';
 
-  /* ---------- Copy button ---------- */
-  const copyBtn = document.getElementById("copyBtn");
-  copyBtn.addEventListener("click", async () => {
+    for (const token of tokens) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = `btn btn-sm ${buttonClass}`;
+      button.title = `Вставить ${token}`;
+      button.textContent = token;
+      button.addEventListener('click', () => insertToken(token));
+      container.appendChild(button);
+    }
+  }
+
+  function populateDrivers(drivers, selectedDriverName = '') {
+    driverSelect.innerHTML = '';
+
+    for (const driverName of drivers) {
+      const option = document.createElement('option');
+      option.value = driverName;
+      option.textContent = driverName;
+      if (driverName === selectedDriverName) {
+        option.selected = true;
+      }
+      driverSelect.appendChild(option);
+    }
+  }
+
+  function populateItems(items) {
+    testItem.innerHTML = '';
+
+    for (const item of items) {
+      const option = document.createElement('option');
+      option.value = item.id;
+      option.textContent = item.name;
+      testItem.appendChild(option);
+    }
+  }
+
+  function populatePrinters(printers) {
+    testPrinter.innerHTML = '';
+
+    for (const printer of printers) {
+      const option = document.createElement('option');
+      option.value = printer.id;
+      option.textContent = `${printer.ip} - ${printer.description}`;
+      testPrinter.appendChild(option);
+    }
+  }
+
+  function populateLabel(label) {
+    if (labelIdValue) labelIdValue.textContent = `#${label.id}`;
+    nameInput.value = label.name || '';
+    if (nameDisplay) nameDisplay.textContent = label.name || '';
+    editor.setValue(label.print_command || '');
+    if (label.driver_name) {
+      driverSelect.value = label.driver_name;
+    }
+    autoResize();
+  }
+
+  function buildLabelPayload() {
+    return {
+      name: nameInput.value.trim(),
+      driver_name: driverSelect.value || '',
+      print_command: editor.getValue(),
+    };
+  }
+
+  async function loadFormData() {
     try {
-      await navigator.clipboard.writeText(editor.getValue());
-      const old = copyBtn.textContent;
-      copyBtn.textContent = "Скопировано";
-      setTimeout(() => copyBtn.textContent = old, 1200);
-    } catch {
-      // ignore if clipboard blocked
+      const requests = [
+        fetchJson(driversApiUrl),
+        fetchJson(itemsApiUrl),
+        fetchJson(printersApiUrl),
+        fetchJson(controlCodesApiUrl),
+        fetchJson(labelVariablesApiUrl),
+      ];
+
+      if (!isCreate) {
+        requests.push(fetchJson(`${labelsApiBaseUrl}${labelId}`));
+      }
+
+      const [drivers, items, printers, controlCodes, labelVariables, label] = await Promise.all(requests);
+
+      populateDrivers(drivers, label ? label.driver_name : '');
+      populateItems(items);
+      populatePrinters(printers);
+      renderTokenButtons(controlCodesButtons, controlCodes, 'btn-outline-primary');
+      renderTokenButtons(labelVariablesButtons, labelVariables, 'btn-outline-success');
+
+      if (label) {
+        populateLabel(label);
+      }
+
+      setupInlineEdit();
+
+      setVisible(labelEditLoading, false);
+      setVisible(labelForm, true);
+    } catch (error) {
+      if (error instanceof Error && error.message === 'HTTP 404') {
+        setError('Объект не найден.');
+      } else {
+        setError('Не удалось загрузить данные формы.');
+      }
+    }
+  }
+
+  labelForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    setVisible(labelEditError, false);
+    setVisible(labelEditSuccess, false);
+
+    const submitBtn = labelForm.querySelector('button[type="submit"]');
+    if (submitBtn) submitBtn.disabled = true;
+    if (deleteLabelBtn) deleteLabelBtn.disabled = true;
+
+    try {
+      const response = await fetch(
+        isCreate ? labelsApiBaseUrl : `${labelsApiBaseUrl}${labelId}`,
+        {
+          method: isCreate ? 'POST' : 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(buildLabelPayload()),
+        }
+      );
+
+      if (!response.ok) {
+        const message = await parseApiError(response, 'Не удалось сохранить шаблон этикетки.');
+        showWarning(message);
+        return;
+      }
+
+      const data = await response.json();
+      const message = isCreate
+        ? `Шаблон этикетки #${data.id} создан.`
+        : `Шаблон этикетки #${data.id} сохранен.`;
+      sessionStorage.setItem('labelsFlash', JSON.stringify({ ok: true, message }));
+      window.location.href = getLabelEditUrl(data.id);
+    } catch (_) {
+      showWarning('Не удалось сохранить шаблон этикетки.');
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
+      if (deleteLabelBtn) deleteLabelBtn.disabled = false;
     }
   });
 
-  /* ---------- Styling for token classes + editor look ---------- */
-  const style = document.createElement("style");
+  if (deleteLabelBtn) {
+    deleteLabelBtn.addEventListener('click', async (event) => {
+      event.preventDefault();
+      setVisible(labelEditError, false);
+      setVisible(labelEditSuccess, false);
+
+      const submitBtn = labelForm.querySelector('button[type="submit"]');
+      deleteLabelBtn.disabled = true;
+      if (submitBtn) submitBtn.disabled = true;
+
+      try {
+        const response = await fetch(`${labelsApiBaseUrl}${labelId}`, {
+          method: 'DELETE',
+        });
+
+        if (!response.ok) {
+          const message = await parseApiError(response, 'Не удалось удалить шаблон этикетки.');
+          showWarning(message);
+          return;
+        }
+
+        const message = `Шаблон этикетки #${labelId} удален.`;
+        showSuccess(message);
+        persistFlashAndRedirect(true, message);
+      } catch (_) {
+        showWarning('Не удалось удалить шаблон этикетки.');
+      } finally {
+        deleteLabelBtn.disabled = false;
+        if (submitBtn) submitBtn.disabled = false;
+      }
+    });
+  }
+
+  if (copyBtn) {
+    copyBtn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(editor.getValue());
+        const oldText = copyBtn.textContent;
+        copyBtn.textContent = 'Скопировано';
+        setTimeout(() => {
+          copyBtn.textContent = oldText;
+        }, 1200);
+      } catch (_) {
+        // ignore clipboard failure
+      }
+    });
+  }
+
+  if (testBtn) {
+    testBtn.addEventListener('click', async () => {
+      setStatus('Отправка...', 'muted');
+      testBtn.disabled = true;
+
+      try {
+        const payload = {
+          print_command: editor.getValue(),
+          item_id: Number(testItem.value),
+          printer_id: Number(testPrinter.value),
+          driver_name: driverSelect.value,
+        };
+
+        const response = await fetch(testPrintUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          const message = await parseApiError(response, 'Не удалось выполнить тестовую печать.');
+          setStatus(message, 'err');
+          return;
+        }
+
+        const data = await response.json();
+        if (data && typeof data === 'object') {
+          const message = data.message || (data.ok ? 'ОК' : 'Ошибка печати');
+          setStatus(message, data.ok ? 'ok' : 'err');
+        } else {
+          setStatus('Ошибка ответа сервера.', 'err');
+        }
+      } catch (_) {
+        setStatus('Ошибка отправки (нет связи с сервером).', 'err');
+      } finally {
+        testBtn.disabled = false;
+      }
+    });
+  }
+
+  const style = document.createElement('style');
   style.textContent = `
     .cm-pc-angle { color: var(--bs-primary) !important; font-weight: 600; }
     .cm-pc-curly { color: var(--bs-success) !important; font-weight: 600; }
@@ -307,57 +599,7 @@
   `;
   document.head.appendChild(style);
 
-  const testBtn = document.getElementById("testPrintBtn");
-  const testStatus = document.getElementById("testPrintStatus");
-  const testItem = document.getElementById("testItem");
-  const testPrinter = document.getElementById("testPrinter");
-
-  // Your driver select already exists in the form:
-  const driverSelect = document.querySelector('select[name="driver_name"]');
-
-  // Put your backend endpoint name here:
-  const testPrintUrl = "{{ url_for('web_print_label_test') }}";
-
-  function setStatus(text, kind) {
-    testStatus.className = "mt-3 small";
-    if (kind === "ok") testStatus.classList.add("text-success");
-    else if (kind === "err") testStatus.classList.add("text-danger");
-    else testStatus.classList.add("text-muted");
-    testStatus.textContent = text;
-  }
-
-  testBtn.addEventListener("click", async () => {
-    setStatus("Отправка...", "muted");
-    testBtn.disabled = true;
-
-    try {
-      const payload = {
-        print_command: editor.getValue(),
-        item_id: Number(testItem.value),
-        printer_id: Number(testPrinter.value),
-        driver_name: driverSelect.value,
-      };
-
-      const res = await fetch(testPrintUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await res.json();
-      if (data && typeof data === "object") {
-        const msg = data.message || (data.ok ? "ОК" : "Ошибка печати");
-        setStatus(msg, data.ok ? "ok" : "err");
-      } else {
-        setStatus("Ошибка ответа сервера.", "err");
-      }
-    } catch (e) {
-      setStatus("Ошибка отправки (нет связи с сервером).", "err");
-    } finally {
-      testBtn.disabled = false;
-    }
-  });
-
-
+  showFlashMessage();
+  loadFormData();
 </script>
 {% endblock %}

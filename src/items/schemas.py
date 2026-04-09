@@ -1,28 +1,9 @@
 from pydantic import BaseModel, ConfigDict, computed_field
 
-from labels.schemas import LabelTemplatesReadWebSchema
+from labels.schemas import LabelTemplatesReadSchema
 
 
 class ItemReadSchema(BaseModel):
-    """Модель представления записи продукта для вывода в API."""
-    id: int
-    name: str
-    ingredients: str
-    nutrition: str
-    fixed_weight: bool
-    nominal_weight: float
-    min_weight: float
-    max_weight: float
-    tare_weight: float
-    gtin: int
-    shelf_life: int
-    units_per_box: int
-    item_label_template: LabelTemplatesReadWebSchema
-
-    model_config = ConfigDict(from_attributes=True)
-
-
-class ItemWebSchema(BaseModel):
     """Модель представления записи продукта для вывода в HTML."""
     id: int
     name: str
@@ -36,7 +17,7 @@ class ItemWebSchema(BaseModel):
     gtin: int
     shelf_life: int
     units_per_box: int
-    item_label_template: LabelTemplatesReadWebSchema
+    item_label_template: LabelTemplatesReadSchema
 
     model_config = ConfigDict(from_attributes=True)
 

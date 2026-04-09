@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% set is_create = (mode == 'create') %}
-{% set page_title = 'Создать принтер' if is_create else ('Принтер #' ~ printer.id) %}
+{% set page_title = 'Создать принтер' if is_create else 'Принтер' %}
 
 {% block title %}{{ page_title }}{% endblock %}
 
@@ -12,12 +12,20 @@
   </div>
 {% endif %}
 
+<div id="printerEditLoading" class="alert alert-secondary">
+  Загрузка...
+</div>
+
+<div id="printerEditError" class="alert alert-danger d-none"></div>
+<div id="printerEditSuccess" class="alert alert-success d-none"></div>
+
 <form
-  action="{% if is_create %}{{ url_for('web_create_printer') }}{% else %}{{ url_for('web_update_printer', printer_id=printer.id) }}{% endif %}"
+  id="printerForm"
+  action=""
   method="post"
   autocomplete="off"
+  class="d-none"
 >
-
   <div class="card shadow-sm">
     <div class="card-header d-flex justify-content-between align-items-center">
       <div class="fw-semibold">{{ 'Создание принтера' if is_create else 'Редактирование принтера' }}</div>
@@ -27,19 +35,13 @@
       <dl class="row mb-4">
         {% if not is_create %}
           <dt class="col-sm-3">ID</dt>
-          <dd class="col-sm-9">#{{ printer.id }}</dd>
+          <dd class="col-sm-9" id="printerIdValue"></dd>
         {% endif %}
 
         <dt class="col-sm-3">IP</dt>
         <dd class="col-sm-9">
           {% if not is_create %}
-            <span
-              id="ipDisplay"
-              role="button"
-              title="Нажмите, чтобы изменить"
-            >
-              {{ printer.ip }}
-            </span>
+            <span id="ipDisplay" role="button" title="Нажмите, чтобы изменить"></span>
           {% endif %}
 
           <input
@@ -47,7 +49,7 @@
             name="ip"
             class="form-control {% if not is_create %}d-none mt-2{% endif %}"
             type="text"
-            value="{{ '' if is_create else printer.ip }}"
+            value=""
             maxlength="64"
             required
           >
@@ -61,13 +63,7 @@
         <dt class="col-sm-3">Порт</dt>
         <dd class="col-sm-9">
           {% if not is_create %}
-            <span
-              id="portDisplay"
-              role="button"
-              title="Нажмите, чтобы изменить"
-            >
-              {{ printer.port }}
-            </span>
+            <span id="portDisplay" role="button" title="Нажмите, чтобы изменить"></span>
           {% endif %}
 
           <input
@@ -77,7 +73,7 @@
             type="number"
             min="1"
             max="65535"
-            value="{{ '' if is_create else printer.port }}"
+            value=""
             required
           >
           {% if not is_create %}
@@ -90,29 +86,14 @@
         <dt class="col-sm-3">Драйвер</dt>
         <dd class="col-sm-9">
           <div style="max-width: 22rem;">
-            <select class="form-select" name="driver_name" required>
-              {% for d in drivers %}
-                <option
-                  value="{{ d }}"
-                  {% if (not is_create and printer.driver_name == d) %}selected{% endif %}
-                >
-                  {{ d }}
-                </option>
-              {% endfor %}
-            </select>
+            <select class="form-select" name="driver_name" id="driverSelect" required></select>
           </div>
         </dd>
 
         <dt class="col-sm-3">Описание</dt>
         <dd class="col-sm-9">
           {% if not is_create %}
-            <span
-              id="descriptionDisplay"
-              role="button"
-              title="Нажмите, чтобы изменить"
-            >
-              {{ printer.description }}
-            </span>
+            <span id="descriptionDisplay" role="button" title="Нажмите, чтобы изменить"></span>
           {% endif %}
 
           <input
@@ -120,7 +101,7 @@
             name="description"
             class="form-control {% if not is_create %}d-none mt-2{% endif %}"
             type="text"
-            value="{{ '' if is_create else printer.description }}"
+            value=""
             maxlength="255"
           >
           {% if not is_create %}
@@ -143,7 +124,7 @@
         <button
           type="submit"
           class="btn btn-sm btn-outline-danger"
-          formaction="{{ url_for('web_delete_printer', printer_id=printer.id) }}"
+          id="deletePrinterBtn"
           formmethod="post"
           formnovalidate
           onclick="return confirm('Удалить принтер?');"
@@ -156,93 +137,95 @@
 </form>
 
 {% if not is_create %}
-  <div class="card shadow-sm">
-    <div class="card-body">
-      <div class="mb-4">
-        <div class="fw-semibold mb-2">Проверить подключение</div>
-        <div class="d-flex align-items-center gap-2">
-          <button type="button" class="btn btn-outline-primary" id="testConnectionBtn">
-            Проверить
-          </button>
-          <span class="small" id="testConnectionStatus"></span>
+  <div id="printerFeatures" class="d-none">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <div class="mb-4">
+          <div class="fw-semibold mb-2">Проверить подключение</div>
+          <div class="d-flex align-items-center gap-2">
+            <button type="button" class="btn btn-outline-primary" id="testConnectionBtn">
+              Проверить
+            </button>
+            <span class="small" id="testConnectionStatus"></span>
+          </div>
         </div>
-      </div>
 
-      <div class="mb-4">
-        <div class="fw-semibold mb-2">Загрузить шрифт</div>
-        <div class="d-flex flex-wrap align-items-center gap-2">
-          <div>
-            <input
-              id="fontId"
-              class="form-control"
-              type="number"
-              min="11"
-              max="99"
-              step="1"
-              placeholder="ID (11-99)"
-              aria-label="Font ID"
-              style="min-width: 12rem;"
-            >
+        <div class="mb-4">
+          <div class="fw-semibold mb-2">Загрузить шрифт</div>
+          <div class="d-flex flex-wrap align-items-center gap-2">
+            <div>
+              <input
+                id="fontId"
+                class="form-control"
+                type="number"
+                min="11"
+                max="99"
+                step="1"
+                placeholder="ID (11-99)"
+                aria-label="Font ID"
+                style="min-width: 12rem;"
+              >
+            </div>
+            <div>
+              <input
+                id="fontFile"
+                class="form-control"
+                type="file"
+                aria-label="Файл шрифта"
+              >
+            </div>
+            <button type="button" class="btn btn-outline-primary" id="loadFontBtn">
+              Загрузить
+            </button>
+            <span class="small" id="loadFontStatus"></span>
           </div>
-          <div>
-            <input
-              id="fontFile"
-              class="form-control"
-              type="file"
-              aria-label="Файл шрифта"
-            >
-          </div>
-          <button type="button" class="btn btn-outline-primary" id="loadFontBtn">
-            Загрузить
-          </button>
-          <span class="small" id="loadFontStatus"></span>
         </div>
-      </div>
 
-      <div class="mb-4">
-        <div class="fw-semibold mb-2">Загрузить картинку</div>
-        <div class="d-flex flex-wrap align-items-center gap-2">
-          <div>
-            <input
-              id="imageFile"
-              class="form-control"
-              type="file"
-              accept="image/*"
-              aria-label="Файл изображения"
-            >
+        <div class="mb-4">
+          <div class="fw-semibold mb-2">Загрузить картинку</div>
+          <div class="d-flex flex-wrap align-items-center gap-2">
+            <div>
+              <input
+                id="imageFile"
+                class="form-control"
+                type="file"
+                accept="image/*"
+                aria-label="Файл изображения"
+              >
+            </div>
+            <button type="button" class="btn btn-outline-primary" id="loadImageBtn">
+              Загрузить
+            </button>
+            <span class="small" id="loadImageStatus"></span>
           </div>
-          <button type="button" class="btn btn-outline-primary" id="loadImageBtn">
-            Загрузить
-          </button>
-          <span class="small" id="loadImageStatus"></span>
         </div>
-      </div>
 
-      <div>
-        <div class="fw-semibold mb-2">Отправить произвольную команду</div>
-        <div class="d-flex flex-wrap align-items-end gap-2">
-          <div>
-            <input
-              id="arbitraryCommand"
-              class="form-control"
-              type="text"
-              maxlength="200"
-              size="50"
-              style="min-width: 28rem;"
-              placeholder="{{ default_command }}"
-              aria-label="Введите команду"
-              value="{{ default_command }}"
-            >
+        <div>
+          <div class="fw-semibold mb-2">Отправить произвольную команду</div>
+          <div class="d-flex flex-wrap align-items-end gap-2">
+            <div>
+              <input
+                id="arbitraryCommand"
+                class="form-control"
+                type="text"
+                maxlength="200"
+                size="50"
+                style="min-width: 28rem;"
+                placeholder=""
+                aria-label="Введите команду"
+                value=""
+              >
+            </div>
+            <button type="button" class="btn btn-outline-primary" id="sendCommandBtn">
+              Отправить
+            </button>
           </div>
-          <button type="button" class="btn btn-outline-primary" id="sendCommandBtn">
-            Отправить
-          </button>
+          <div
+            class="mt-2 small text-muted"
+            id="sendCommandOutput"
+            style="white-space: pre-wrap;"
+          ></div>
         </div>
-        <div
-          class="mt-2 small text-muted"
-          id="sendCommandOutput"
-          style="white-space: pre-wrap;"
-        ></div>
       </div>
     </div>
   </div>
@@ -250,6 +233,80 @@
 
 <script>
   const isCreate = {{ 'true' if is_create else 'false' }};
+  const printerId = {{ request.path_params.get('printer_id', 0) if not is_create else 0 }};
+
+  const printerEditLoading = document.getElementById('printerEditLoading');
+  const printerEditError = document.getElementById('printerEditError');
+  const printerEditSuccess = document.getElementById('printerEditSuccess');
+  const printerForm = document.getElementById('printerForm');
+  const printerFeatures = document.getElementById('printerFeatures');
+
+  const ipInput = document.getElementById('ipInput');
+  const portInput = document.getElementById('portInput');
+  const descriptionInput = document.getElementById('descriptionInput');
+  const driverSelect = document.getElementById('driverSelect');
+
+  const ipDisplay = document.getElementById('ipDisplay');
+  const portDisplay = document.getElementById('portDisplay');
+  const descriptionDisplay = document.getElementById('descriptionDisplay');
+  const printerIdValue = document.getElementById('printerIdValue');
+  const deletePrinterBtn = document.getElementById('deletePrinterBtn');
+
+  const testConnectionBtn = document.getElementById('testConnectionBtn');
+  const testConnectionStatus = document.getElementById('testConnectionStatus');
+  const sendCommandBtn = document.getElementById('sendCommandBtn');
+  const commandInput = document.getElementById('arbitraryCommand');
+  const sendCommandOutput = document.getElementById('sendCommandOutput');
+  const loadFontBtn = document.getElementById('loadFontBtn');
+  const loadFontStatus = document.getElementById('loadFontStatus');
+  const fontFile = document.getElementById('fontFile');
+  const fontIdInput = document.getElementById('fontId');
+  const loadImageBtn = document.getElementById('loadImageBtn');
+  const loadImageStatus = document.getElementById('loadImageStatus');
+  const imageFile = document.getElementById('imageFile');
+
+  const driversApiUrl = '/api/v1/drivers/printers';
+  const printersApiBaseUrl = '/api/v1/printers/';
+  const printersListUrl = '{{ url_for("web_get_all_printers") }}';
+  const testConnectionUrl = `${printersApiBaseUrl}test_connection`;
+  const sendCommandUrl = `${printersApiBaseUrl}send_arbitrary_command`;
+  const loadFontUrl = `${printersApiBaseUrl}load_font`;
+  const loadImageUrl = `${printersApiBaseUrl}load_image`;
+
+  function setVisible(element, isVisible) {
+    if (!element) return;
+    element.classList.toggle('d-none', !isVisible);
+  }
+
+  function setError(message) {
+    setVisible(printerEditSuccess, false);
+    printerEditError.textContent = message;
+    setVisible(printerEditError, true);
+    setVisible(printerEditLoading, false);
+    setVisible(printerForm, false);
+    setVisible(printerFeatures, false);
+  }
+
+  function showWarning(message) {
+    setVisible(printerEditSuccess, false);
+    printerEditError.textContent = message;
+    setVisible(printerEditError, true);
+  }
+
+  function showSuccess(message) {
+    setVisible(printerEditError, false);
+    printerEditSuccess.textContent = message;
+    setVisible(printerEditSuccess, true);
+  }
+
+  function setStatus(element, ok, message) {
+    if (!element) return;
+    element.className = 'small';
+    if (ok === true) element.classList.add('text-success');
+    else if (ok === false) element.classList.add('text-danger');
+    else element.classList.add('text-muted');
+    element.textContent = message || '';
+  }
 
   function setupInlineEdit(displayId, inputId, hintId) {
     if (isCreate) return;
@@ -258,9 +315,9 @@
     const hint = document.getElementById(hintId);
 
     function openEdit() {
-      display.classList.add("d-none");
-      input.classList.remove("d-none");
-      hint.classList.remove("d-none");
+      display.classList.add('d-none');
+      input.classList.remove('d-none');
+      hint.classList.remove('d-none');
       input.focus();
       input.select();
     }
@@ -271,217 +328,369 @@
       } else {
         input.value = display.textContent.trim();
       }
-      input.classList.add("d-none");
-      hint.classList.add("d-none");
-      display.classList.remove("d-none");
+      input.classList.add('d-none');
+      hint.classList.add('d-none');
+      display.classList.remove('d-none');
     }
 
-    display.addEventListener("click", openEdit);
-    input.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") { e.preventDefault(); closeEdit(true); }
-      if (e.key === "Escape") { e.preventDefault(); closeEdit(false); }
+    display.addEventListener('click', openEdit);
+    input.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        closeEdit(true);
+      }
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeEdit(false);
+      }
     });
-    input.addEventListener("blur", () => closeEdit(true));
+    input.addEventListener('blur', () => closeEdit(true));
   }
 
-  setupInlineEdit("ipDisplay", "ipInput", "ipHint");
-  setupInlineEdit("portDisplay", "portInput", "portHint");
-  setupInlineEdit("descriptionDisplay", "descriptionInput", "descriptionHint");
+  function populateDrivers(drivers, selectedDriverName = '') {
+    driverSelect.innerHTML = '';
 
-  const ipInput = document.getElementById("ipInput");
-  const portInput = document.getElementById("portInput");
-  const driverSelect = document.querySelector('select[name="driver_name"]');
-
-  const testConnectionBtn = document.getElementById("testConnectionBtn");
-  const testConnectionStatus = document.getElementById("testConnectionStatus");
-
-  const sendCommandBtn = document.getElementById("sendCommandBtn");
-  const commandInput = document.getElementById("arbitraryCommand");
-  const sendCommandOutput = document.getElementById("sendCommandOutput");
-
-  const loadFontBtn = document.getElementById("loadFontBtn");
-  const loadFontStatus = document.getElementById("loadFontStatus");
-  const fontFile = document.getElementById("fontFile");
-  const fontIdInput = document.getElementById("fontId");
-
-  const loadImageBtn = document.getElementById("loadImageBtn");
-  const loadImageStatus = document.getElementById("loadImageStatus");
-  const imageFile = document.getElementById("imageFile");
-
-  const testConnectionUrl = "{{ url_for('web_printer_test_connection') }}";
-  const sendCommandUrl = "{{ url_for('web_printer_send_arbitrary_command') }}";
-  const loadFontUrl = "{{ url_for('web_printer_load_font') }}";
-  const loadImageUrl = "{{ url_for('web_printer_load_image') }}";
-
-  function setStatus(el, ok, message) {
-    if (!el) return;
-    el.className = "small";
-    if (ok === true) el.classList.add("text-success");
-    else if (ok === false) el.classList.add("text-danger");
-    else el.classList.add("text-muted");
-    el.textContent = message || "";
+    for (const driverName of drivers) {
+      const option = document.createElement('option');
+      option.value = driverName;
+      option.textContent = driverName;
+      if (driverName === selectedDriverName) {
+        option.selected = true;
+      }
+      driverSelect.appendChild(option);
+    }
   }
 
-  function getPayload(extra) {
+  function populatePrinter(printer) {
+    if (printerIdValue) printerIdValue.textContent = `#${printer.id}`;
+
+    ipInput.value = printer.ip || '';
+    portInput.value = printer.port ?? '';
+    descriptionInput.value = printer.description || '';
+
+    if (ipDisplay) ipDisplay.textContent = printer.ip || '';
+    if (portDisplay) portDisplay.textContent = printer.port ?? '';
+    if (descriptionDisplay) descriptionDisplay.textContent = printer.description || '';
+  }
+
+  async function fetchJson(url) {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    return await response.json();
+  }
+
+  async function parseApiError(response, fallbackMessage) {
+    try {
+      const data = await response.json();
+      if (data && typeof data === 'object') {
+        if (typeof data.detail === 'string') {
+          return data.detail;
+        }
+        if (Array.isArray(data.detail) && data.detail.length > 0) {
+          const first = data.detail[0];
+          if (first && typeof first.msg === 'string') {
+            return first.msg;
+          }
+        }
+        if (typeof data.message === 'string') {
+          return data.message;
+        }
+      }
+    } catch (_) {
+      // ignore parsing error
+    }
+    return fallbackMessage;
+  }
+
+  function buildPrinterPayload() {
     return {
       ip: ipInput.value.trim(),
       port: Number(portInput.value),
-      driver_name: driverSelect.value || "",
-      ...extra,
+      description: descriptionInput.value.trim(),
+      driver_name: driverSelect.value || '',
     };
   }
 
-  async function handleJsonOrText(res) {
-    const ct = res.headers.get("content-type") || "";
-    if (ct.includes("application/json")) {
-      const data = await res.json();
-      return data;
+  function buildPrinterFormData(extra = {}) {
+    const formData = new FormData();
+    formData.append('ip', ipInput.value.trim());
+    formData.append('port', String(portInput.value));
+    formData.append('driver_name', driverSelect.value || '');
+
+    for (const [key, value] of Object.entries(extra)) {
+      formData.append(key, value);
     }
-    return await res.text();
+
+    return formData;
+  }
+
+  function persistFlashAndRedirect(ok, message) {
+    sessionStorage.setItem('printersFlash', JSON.stringify({ ok, message }));
+    window.location.href = printersListUrl;
+  }
+
+  async function loadFormData() {
+    try {
+      const drivers = await fetchJson(driversApiUrl);
+      let printer = null;
+
+      if (!isCreate) {
+        printer = await fetchJson(`${printersApiBaseUrl}${printerId}`);
+      }
+
+      populateDrivers(drivers, printer ? printer.driver_name : '');
+
+      if (printer) {
+        populatePrinter(printer);
+      }
+
+      setupInlineEdit('ipDisplay', 'ipInput', 'ipHint');
+      setupInlineEdit('portDisplay', 'portInput', 'portHint');
+      setupInlineEdit('descriptionDisplay', 'descriptionInput', 'descriptionHint');
+
+      setVisible(printerEditLoading, false);
+      setVisible(printerForm, true);
+      setVisible(printerFeatures, !isCreate);
+    } catch (error) {
+      if (error instanceof Error && error.message === 'HTTP 404') {
+        setError('Объект не найден.');
+      } else {
+        setError('Не удалось загрузить данные формы.');
+      }
+    }
+  }
+
+  printerForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    setVisible(printerEditError, false);
+    setVisible(printerEditSuccess, false);
+
+    const submitBtn = printerForm.querySelector('button[type="submit"]');
+    if (submitBtn) submitBtn.disabled = true;
+    if (deletePrinterBtn) deletePrinterBtn.disabled = true;
+
+    try {
+      const response = await fetch(
+        isCreate
+          ? printersApiBaseUrl
+          : `${printersApiBaseUrl}${printerId}`,
+        {
+          method: isCreate ? 'POST' : 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(buildPrinterPayload()),
+        }
+      );
+
+      if (!response.ok) {
+        const message = await parseApiError(response, 'Не удалось сохранить данные принтера.');
+        showWarning(message);
+        return;
+      }
+
+      const data = await response.json();
+      const message = isCreate
+        ? `Принтер #${data.id} создан.`
+        : `Принтер #${data.id} сохранен.`;
+      showSuccess(message);
+      persistFlashAndRedirect(true, message);
+    } catch (_) {
+      showWarning('Не удалось сохранить данные принтера.');
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
+      if (deletePrinterBtn) deletePrinterBtn.disabled = false;
+    }
+  });
+
+  if (deletePrinterBtn) {
+    deletePrinterBtn.addEventListener('click', async (event) => {
+      event.preventDefault();
+      setVisible(printerEditError, false);
+      setVisible(printerEditSuccess, false);
+
+      const submitBtn = printerForm.querySelector('button[type="submit"]');
+      deletePrinterBtn.disabled = true;
+      if (submitBtn) submitBtn.disabled = true;
+
+      try {
+        const response = await fetch(`${printersApiBaseUrl}${printerId}`, {
+          method: 'DELETE',
+        });
+
+        if (!response.ok) {
+          const message = await parseApiError(response, 'Не удалось удалить принтер.');
+          showWarning(message);
+          return;
+        }
+
+        const message = `Принтер #${printerId} удален.`;
+        showSuccess(message);
+        persistFlashAndRedirect(true, message);
+      } catch (_) {
+        showWarning('Не удалось удалить принтер.');
+      } finally {
+        deletePrinterBtn.disabled = false;
+        if (submitBtn) submitBtn.disabled = false;
+      }
+    });
+  }
+
+  async function handleJsonOrText(response) {
+    const contentType = response.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      return await response.json();
+    }
+    return await response.text();
   }
 
   function toOk(value, fallbackOk) {
-    if (typeof value === "boolean") return value;
-    if (value && typeof value === "object") {
-      if ("ok" in value) return Boolean(value.ok);
-      if ("success" in value) return Boolean(value.success);
-      if ("result" in value) return Boolean(value.result);
-      if ("detail" in value && typeof value.detail === "boolean") return value.detail;
-      if ("message" in value && typeof value.message === "boolean") return value.message;
+    if (typeof value === 'boolean') return value;
+    if (value && typeof value === 'object') {
+      if ('ok' in value) return Boolean(value.ok);
+      if ('success' in value) return Boolean(value.success);
+      if ('result' in value) return Boolean(value.result);
+      if ('detail' in value && typeof value.detail === 'boolean') return value.detail;
+      if ('message' in value && typeof value.message === 'boolean') return value.message;
     }
-    if (typeof fallbackOk === "boolean") return fallbackOk;
+    if (typeof fallbackOk === 'boolean') return fallbackOk;
     return null;
   }
 
-  if (testConnectionBtn) testConnectionBtn.addEventListener("click", async () => {
-    setStatus(testConnectionStatus, null, "Проверка...");
-    testConnectionBtn.disabled = true;
+  if (testConnectionBtn) {
+    testConnectionBtn.addEventListener('click', async () => {
+      setStatus(testConnectionStatus, null, 'Проверка...');
+      testConnectionBtn.disabled = true;
 
-    try {
-      const formData = new FormData();
-      formData.append("ip", ipInput.value.trim());
-      formData.append("port", String(portInput.value));
-      formData.append("driver_name", driverSelect.value || "");
+      try {
+        const response = await fetch(testConnectionUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(buildPrinterPayload()),
+        });
 
-      const res = await fetch(testConnectionUrl, {
-        method: "POST",
-        body: formData,
-      });
-
-      const data = await handleJsonOrText(res);
-      const ok = toOk(data, res.ok);
-      const msg = (data && typeof data === "object" ? data.message : "") || (ok ? "ОК" : "Ошибка");
-      setStatus(testConnectionStatus, ok, msg);
-    } catch {
-      setStatus(testConnectionStatus, false, "Ошибка отправки");
-    } finally {
-      testConnectionBtn.disabled = false;
-    }
-  });
-
-  if (loadFontBtn) loadFontBtn.addEventListener("click", async () => {
-    setStatus(loadFontStatus, null, "Загрузка...");
-    loadFontBtn.disabled = true;
-
-    try {
-      const file = fontFile.files && fontFile.files[0];
-      if (!file) {
-        setStatus(loadFontStatus, false, "Выберите файл");
-        return;
+        const data = await handleJsonOrText(response);
+        const ok = toOk(data, response.ok);
+        const message = (data && typeof data === 'object' ? data.message : '') || (ok ? 'ОК' : 'Ошибка');
+        setStatus(testConnectionStatus, ok, message);
+      } catch (_) {
+        setStatus(testConnectionStatus, false, 'Ошибка отправки');
+      } finally {
+        testConnectionBtn.disabled = false;
       }
+    });
+  }
 
-      const fontId = Number(fontIdInput.value);
-      if (!Number.isInteger(fontId) || fontId < 11 || fontId > 99) {
-        setStatus(loadFontStatus, false, "Неверный ID");
-        return;
-      }
+  if (loadFontBtn) {
+    loadFontBtn.addEventListener('click', async () => {
+      setStatus(loadFontStatus, null, 'Загрузка...');
+      loadFontBtn.disabled = true;
 
-      const formData = new FormData();
-      formData.append("font_file", file);
-      formData.append("font_id", String(fontId));
-      formData.append("ip", ipInput.value.trim());
-      formData.append("port", String(portInput.value));
-      formData.append("driver_name", driverSelect.value || "");
-
-      const res = await fetch(loadFontUrl, {
-        method: "POST",
-        body: formData,
-      });
-
-      const data = await handleJsonOrText(res);
-      const ok = toOk(data, res.ok);
-      const msg = (data && typeof data === "object" ? data.message : "") || (ok ? "Готово" : "Ошибка");
-      setStatus(loadFontStatus, ok, msg);
-    } catch {
-      setStatus(loadFontStatus, false, "Ошибка отправки");
-    } finally {
-      loadFontBtn.disabled = false;
-    }
-  });
-
-  if (loadImageBtn) loadImageBtn.addEventListener("click", async () => {
-    setStatus(loadImageStatus, null, "Загрузка...");
-    loadImageBtn.disabled = true;
-
-    try {
-      const file = imageFile.files && imageFile.files[0];
-      if (!file) {
-        setStatus(loadImageStatus, false, "Выберите файл");
-        return;
-      }
-
-      const formData = new FormData();
-      formData.append("image_file", file);
-      formData.append("ip", ipInput.value.trim());
-      formData.append("port", String(portInput.value));
-      formData.append("driver_name", driverSelect.value || "");
-
-      const res = await fetch(loadImageUrl, {
-        method: "POST",
-        body: formData,
-      });
-
-      const data = await handleJsonOrText(res);
-      const ok = toOk(data, res.ok);
-      const msg = (data && typeof data === "object" ? data.message : "") || (ok ? "Готово" : "Ошибка");
-      setStatus(loadImageStatus, ok, msg);
-    } catch {
-      setStatus(loadImageStatus, false, "Ошибка отправки");
-    } finally {
-      loadImageBtn.disabled = false;
-    }
-  });
-
-  if (sendCommandBtn) sendCommandBtn.addEventListener("click", async () => {
-    sendCommandBtn.disabled = true;
-    sendCommandOutput.textContent = "";
-
-    try {
-      const formData = new FormData();
-      formData.append("ip", ipInput.value.trim());
-      formData.append("port", String(portInput.value));
-      formData.append("driver_name", driverSelect.value || "");
-      formData.append("command", commandInput.value);
-
-      const res = await fetch(sendCommandUrl, {
-        method: "POST",
-        body: formData,
-      });
-      const data = await handleJsonOrText(res);
-      if (data && typeof data === "object") {
-        if (data.ok) {
-          sendCommandOutput.textContent = data.data || "";
-        } else {
-          sendCommandOutput.textContent = data.message || "Ошибка";
+      try {
+        const file = fontFile.files && fontFile.files[0];
+        if (!file) {
+          setStatus(loadFontStatus, false, 'Выберите файл');
+          return;
         }
-      } else if (typeof data === "string") {
-        sendCommandOutput.textContent = data;
+
+        const fontId = Number(fontIdInput.value);
+        if (!Number.isInteger(fontId) || fontId < 11 || fontId > 99) {
+          setStatus(loadFontStatus, false, 'Неверный ID');
+          return;
+        }
+
+        const formData = buildPrinterFormData({
+          font_id: String(fontId),
+          font_file: file,
+        });
+
+        const response = await fetch(loadFontUrl, {
+          method: 'POST',
+          body: formData,
+        });
+
+        const data = await handleJsonOrText(response);
+        const ok = toOk(data, response.ok);
+        const message = (data && typeof data === 'object' ? data.message : '') || (ok ? 'Готово' : 'Ошибка');
+        setStatus(loadFontStatus, ok, message);
+      } catch (_) {
+        setStatus(loadFontStatus, false, 'Ошибка отправки');
+      } finally {
+        loadFontBtn.disabled = false;
       }
-    } catch {
-      sendCommandOutput.textContent = "Ошибка отправки (нет связи с сервером).";
-    } finally {
-      sendCommandBtn.disabled = false;
-    }
-  });
+    });
+  }
+
+  if (loadImageBtn) {
+    loadImageBtn.addEventListener('click', async () => {
+      setStatus(loadImageStatus, null, 'Загрузка...');
+      loadImageBtn.disabled = true;
+
+      try {
+        const file = imageFile.files && imageFile.files[0];
+        if (!file) {
+          setStatus(loadImageStatus, false, 'Выберите файл');
+          return;
+        }
+
+        const formData = buildPrinterFormData({
+          image_file: file,
+        });
+
+        const response = await fetch(loadImageUrl, {
+          method: 'POST',
+          body: formData,
+        });
+
+        const data = await handleJsonOrText(response);
+        const ok = toOk(data, response.ok);
+        const message = (data && typeof data === 'object' ? data.message : '') || (ok ? 'Готово' : 'Ошибка');
+        setStatus(loadImageStatus, ok, message);
+      } catch (_) {
+        setStatus(loadImageStatus, false, 'Ошибка отправки');
+      } finally {
+        loadImageBtn.disabled = false;
+      }
+    });
+  }
+
+  if (sendCommandBtn) {
+    sendCommandBtn.addEventListener('click', async () => {
+      sendCommandBtn.disabled = true;
+      sendCommandOutput.textContent = '';
+
+      try {
+        const formData = buildPrinterFormData({
+          command: commandInput.value,
+        });
+
+        const response = await fetch(sendCommandUrl, {
+          method: 'POST',
+          body: formData,
+        });
+
+        const data = await handleJsonOrText(response);
+        if (data && typeof data === 'object') {
+          if (data.ok) {
+            sendCommandOutput.textContent = data.data || '';
+          } else {
+            sendCommandOutput.textContent = data.message || 'Ошибка';
+          }
+        } else if (typeof data === 'string') {
+          sendCommandOutput.textContent = data;
+        }
+      } catch (_) {
+        sendCommandOutput.textContent = 'Ошибка отправки (нет связи с сервером).';
+      } finally {
+        sendCommandBtn.disabled = false;
+      }
+    });
+  }
+
+  loadFormData();
 </script>
 {% endblock %}

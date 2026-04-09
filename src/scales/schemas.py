@@ -1,48 +1,32 @@
 from ipaddress import IPv4Address
 from typing import Annotated
-from pydantic import AfterValidator, BaseModel, ConfigDict, computed_field
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field
 
 from core.config import settings as s
-from device_drivers.drivers import scales_drivers
-from device_drivers.scales.scales_base import BaseScalesDriver
+from drivers.drivers import scales_driver_name_validator
 
 
-def driver_name_validator(value: str) -> str:
-    """Проверяем указанное имя драйвера."""
-    if value not in scales_drivers.keys():
-        raise ValueError(s.MESSAGE_WRONG_DRIVER_NAME)
+class ScalesReadSchema(BaseModel):
+    """Модель представления записи весов."""
+    id: int
+    ip: IPv4Address
+    port: int
+    description: str
+    driver_name: Annotated[str, AfterValidator(scales_driver_name_validator)]
 
-    return value
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ScalesCreateUpdateSchema(BaseModel):
+    """Модель создания/изменения весов."""
+    ip: IPv4Address
+    port: int = Field(ge=s.DEVICE_PORT_MIN, le=s.DEVICE_PORT_MAX)
+    description: str
+    driver_name: Annotated[str, AfterValidator(scales_driver_name_validator)]
 
 
 class ScalesShortSchema(BaseModel):
-    """Модель основных полей весов."""
+    """Модель короткого представления весов."""
     ip: IPv4Address
-    port: int
-    driver_name: Annotated[str, AfterValidator(driver_name_validator)]
-
-    model_config = ConfigDict(from_attributes=True,
-                              exclude_computed_fields=True,
-                              arbitrary_types_allowed=True)
-
-    @computed_field
-    @property
-    def driver(self) -> BaseScalesDriver:
-        """Получаем драйвер весов. Контроль существования возложен на валидатор."""
-        return scales_drivers.get(self.driver_name)
-
-
-class ScalesReadWebSchema(ScalesShortSchema):
-    """Модель представления записи весов для вывода в HTML."""
-    id: int
-    description: str
-
-
-class ScalesCreateUpdateWebSchema(BaseModel):
-    """Модель создания/изменения весов для вывода в API."""
-    ip: IPv4Address
-    port: int
-    description: str
-    driver_name: Annotated[str, AfterValidator(driver_name_validator)]
-
-    model_config = ConfigDict(from_attributes=True)
+    port: int = Field(ge=s.DEVICE_PORT_MIN, le=s.DEVICE_PORT_MAX)
+    driver_name: Annotated[str, AfterValidator(scales_driver_name_validator)]

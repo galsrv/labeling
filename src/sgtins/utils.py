@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import settings as s
 
-from items.service import web_items_service
+from items.service import items_service
 
 
 CODE_PARTS_PATTERN = re.compile(r'^01(?P<gtin>\d{14})21(?P<sgtin>.+?)\x1d93(?P<crypto_end>.+)$')
@@ -77,7 +77,7 @@ def _validate_unique_pairs(codes: list[tuple[str, str, str]]) -> None:
 async def gtins_in_file_validation(input_data: list[tuple[str, str, str]], session: AsyncSession) -> None:
     """Валидация значения GTIN в загруженном файле."""
     gtins_in_file_set = set(int(el[0]) for el in input_data)
-    existings_gtins = await web_items_service.get_all_gtins(session)
+    existings_gtins = await items_service.get_all_gtins(session)
 
     for el in gtins_in_file_set:
         if el not in existings_gtins:

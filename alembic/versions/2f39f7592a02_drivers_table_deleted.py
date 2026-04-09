@@ -11,8 +11,8 @@ from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
-from device_drivers.drivers import scales_drivers
-from device_drivers.drivers import printer_drivers
+from drivers.drivers import scales_drivers
+from drivers.drivers import printer_drivers
 
 # revision identifiers, used by Alembic.
 revision: str = '2f39f7592a02'

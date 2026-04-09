@@ -4,54 +4,136 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1 class="mb-0">Принтеры</h1>
+  <h1 class="mb-0">Принтеры</h1>
 
-    <a href="{{ url_for('web_create_printer_form') }}" class="btn btn-sm btn-primary">
-        Создать
-    </a>
+  <a href="{{ url_for('web_create_printer_form') }}" class="btn btn-sm btn-primary">
+    Создать
+  </a>
 </div>
 
-{% if all_printers and all_printers|length > 0 %}
-    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-        {% for printer in all_printers %}
-        <div class="col">
-            <div class="card h-100 shadow-sm position-relative hover-card">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <h5 class="card-title mb-2">🖨️ Принтер #{{ printer.id }}</h5>
-                    </div>
+<div id="printersFlash" class="alert d-none"></div>
 
-                    <a
-                        href="{{ url_for('web_update_printer_form', printer_id=printer.id) }}"
-                        class="stretched-link"
-                        aria-label="Открыть принтер #{{ printer.id }}"
-                    ></a>
+<div id="printersLoading" class="alert alert-secondary">
+  Загрузка...
+</div>
 
-                    <dl class="row mb-0">
-                        <dt class="col-5">IP</dt>
-                        <dd class="col-7 text-break mb-2">{{ printer.ip }}</dd>
+<div id="printersError" class="alert alert-danger d-none"></div>
 
-                        <dt class="col-5">Порт</dt>
-                        <dd class="col-7 mb-2">{{ printer.port }}</dd>
+<div id="printersEmpty" class="alert alert-info d-none">
+  Принтеры не найдены.
+</div>
 
-                        <dt class="col-5">Драйвер</dt>
-                        <dd class="col-7 mb-2">{{ printer.driver_name }}</dd>
+<div id="printersList" class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4 d-none"></div>
 
-                        <dt class="col-5">Описание</dt>
-                        <dd class="col-7 mb-0">
-                            <span class="d-block text-truncate" style="max-width: 100%;" title="{{ printer.description }}">
-                                {{ printer.description }}
-                            </span>
-                        </dd>
-                    </dl>
-                </div>
+<script>
+  const printersApiUrl = '/api/v1/printers/';
+  const printersLoading = document.getElementById('printersLoading');
+  const printersFlash = document.getElementById('printersFlash');
+  const printersError = document.getElementById('printersError');
+  const printersEmpty = document.getElementById('printersEmpty');
+  const printersList = document.getElementById('printersList');
+  const printerEditUrlTemplate = '{{ url_for("web_update_printer_form", printer_id=0) }}';
+
+  function setVisible(element, isVisible) {
+    if (!element) return;
+    element.classList.toggle('d-none', !isVisible);
+  }
+
+  function getPrinterEditUrl(printerId) {
+    return printerEditUrlTemplate.replace(/0$/, String(printerId));
+  }
+
+  function showFlashMessage() {
+    const raw = sessionStorage.getItem('printersFlash');
+    if (!raw) return;
+
+    sessionStorage.removeItem('printersFlash');
+
+    try {
+      const flash = JSON.parse(raw);
+      printersFlash.className = `alert ${flash.ok ? 'alert-success' : 'alert-danger'}`;
+      printersFlash.textContent = flash.message || (flash.ok ? 'Операция выполнена.' : 'Не удалось выполнить операцию.');
+      setVisible(printersFlash, true);
+    } catch (_) {
+      printersFlash.className = 'alert alert-secondary';
+      printersFlash.textContent = raw;
+      setVisible(printersFlash, true);
+    }
+  }
+
+  function renderPrinters(printers) {
+    printersList.innerHTML = '';
+
+    for (const printer of printers) {
+      const col = document.createElement('div');
+      col.className = 'col';
+      col.innerHTML = `
+        <div class="card h-100 shadow-sm position-relative hover-card">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start">
+              <h5 class="card-title mb-2">🖨️ Принтер #${printer.id}</h5>
             </div>
+
+            <a
+              href="${getPrinterEditUrl(printer.id)}"
+              class="stretched-link"
+              aria-label="Открыть принтер #${printer.id}"
+            ></a>
+
+            <dl class="row mb-0">
+              <dt class="col-5">IP</dt>
+              <dd class="col-7 text-break mb-2">${printer.ip}</dd>
+
+              <dt class="col-5">Порт</dt>
+              <dd class="col-7 mb-2">${printer.port}</dd>
+
+              <dt class="col-5">Драйвер</dt>
+              <dd class="col-7 mb-2">${printer.driver_name || '—'}</dd>
+
+              <dt class="col-5">Описание</dt>
+              <dd class="col-7 mb-0">
+                <span class="d-block text-truncate" style="max-width: 100%;" title="${printer.description}">
+                  ${printer.description}
+                </span>
+              </dd>
+            </dl>
+          </div>
         </div>
-        {% endfor %}
-    </div>
-{% else %}
-    <div class="alert alert-info">
-        Весы не найдены.
-    </div>
-{% endif %}
+      `;
+      printersList.appendChild(col);
+    }
+  }
+
+  async function loadPrinters() {
+    setVisible(printersLoading, true);
+    setVisible(printersError, false);
+    setVisible(printersEmpty, false);
+    setVisible(printersList, false);
+
+    try {
+      const response = await fetch(printersApiUrl);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const printers = await response.json();
+      setVisible(printersLoading, false);
+
+      if (!Array.isArray(printers) || printers.length === 0) {
+        setVisible(printersEmpty, true);
+        return;
+      }
+
+      renderPrinters(printers);
+      setVisible(printersList, true);
+    } catch (_) {
+      setVisible(printersLoading, false);
+      printersError.textContent = 'Не удалось загрузить список принтеров.';
+      setVisible(printersError, true);
+    }
+  }
+
+  showFlashMessage();
+  loadPrinters();
+</script>
 {% endblock %}

@@ -20,7 +20,7 @@ class WorkplaceOrm(AppBaseClass):
     printer2_id: Mapped[int] = mapped_column(Integer, ForeignKey(PrinterOrm.id, ondelete='SET NULL'), nullable=True)
 
     scales: Mapped[ScalesOrm] = relationship(ScalesOrm, lazy='joined')
-    #printer1: Mapped[PrinterOrm] = relationship(PrinterOrm, lazy='joined', foreign_keys=['printer1_id'])
-    #printer2: Mapped[PrinterOrm] = relationship(PrinterOrm, lazy='joined', foreign_keys=['printer2_id'])
+    printer1: Mapped[PrinterOrm] = relationship(PrinterOrm, lazy='joined', foreign_keys=[printer1_id])
+    printer2: Mapped[PrinterOrm] = relationship(PrinterOrm, lazy='joined', foreign_keys=[printer2_id])
 
     __order_by__ = (id, )

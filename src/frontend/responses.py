@@ -4,7 +4,7 @@ from pydantic import BaseModel
 
 from core.config import templates
 
-from device_drivers.validators import ScalesResponse
+from drivers.validators import ScalesResponse
 
 
 def not_found_response(request: Request) -> HTMLResponse:
@@ -16,7 +16,7 @@ def not_found_response(request: Request) -> HTMLResponse:
     )
 
 
-class WebJsonResponse(BaseModel):
+class JsonToFrontendResponse(BaseModel):
     """Структура ответа фронтенду в формате JSON."""
     ok: bool
     message: str | None = None

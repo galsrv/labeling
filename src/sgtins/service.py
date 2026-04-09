@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import settings as s
 
-from frontend.responses import WebJsonResponse
+from frontend.responses import JsonToFrontendResponse
 
 from sgtins.models import SgtinStatus
 from sgtins.schema import SgtinSchema, SgtinCreateSchema, SgtinUpdateSchema
@@ -37,7 +37,7 @@ class SgtinService:
 
         return await sgtin_repo.batch_update(session, ids, sgtin_update_dto)
 
-    async def batch_insert(self, file: bytes, session: AsyncSession) -> WebJsonResponse:
+    async def batch_insert(self, file: bytes, session: AsyncSession) -> JsonToFrontendResponse:
         """Записываем в БД коды из файла.
 
         1. Проверяем корректность структуры файла.
@@ -48,22 +48,22 @@ class SgtinService:
             input_data: list[tuple[str, str, str]] = load_marking_codes_from_file(file)
         except Exception as e:
             logger.warning(str(e))
-            return WebJsonResponse(ok=False, message=str(e))
+            return JsonToFrontendResponse(ok=False, message=str(e))
 
         try:
             await gtins_in_file_validation(input_data, session)
         except ValueError as e:
             logger.warning(str(e))
-            return WebJsonResponse(ok=False, message=str(e))
+            return JsonToFrontendResponse(ok=False, message=str(e))
 
         sgtin_dtos = [SgtinCreateSchema(gtin=el[0], sgtin=el[1], crypto_end=el[2]) for el in input_data]
 
         if await sgtin_repo.batch_create(session, sgtin_dtos):
             logger.warning(s.MESSAGE_SUCCESSFUL_FILE_PROCESSING)
-            return WebJsonResponse(ok=True, message=s.MESSAGE_SUCCESSFUL_FILE_PROCESSING)
+            return JsonToFrontendResponse(ok=True, message=s.MESSAGE_SUCCESSFUL_FILE_PROCESSING)
 
         logger.warning(s.MESSAGE_ERROR_LOADING_SGTIN_FILE)
-        return WebJsonResponse(ok=False, message=s.MESSAGE_ERROR_LOADING_SGTIN_FILE)
+        return JsonToFrontendResponse(ok=False, message=s.MESSAGE_ERROR_LOADING_SGTIN_FILE)
 
 
 sgtin_service = SgtinService()

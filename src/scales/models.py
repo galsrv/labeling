@@ -5,10 +5,6 @@ from sqlalchemy.orm import Mapped, mapped_column
 from core.config import settings as s
 from core.database import AppBaseClass
 
-from device_drivers.drivers import scales_drivers
-
-AVAILABLE_DRIVERS = scales_drivers.keys()
-
 
 class ScalesOrm(AppBaseClass):
     """Модель справочника весов."""
@@ -24,10 +20,6 @@ class ScalesOrm(AppBaseClass):
     __table_args__ = (
         CheckConstraint(port >= s.DEVICE_PORT_MIN, name='check_port_min'),
         CheckConstraint(port <= s.DEVICE_PORT_MAX, name='check_port_max'),
-        CheckConstraint(
-            f"driver_name IN ({', '.join(repr(v) for v in AVAILABLE_DRIVERS)})",
-            name='check_driver_name_valid',
-        ),
     )
 
     __order_by__ = (id, )
