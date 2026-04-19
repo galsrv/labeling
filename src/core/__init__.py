@@ -6,3 +6,5 @@ from printers.models import PrinterOrm  # noqa
 from scales.models import ScalesOrm  # noqa
 from workplaces.models import WorkplaceOrm  # noqa
 from sgtins.models import SgtinOrm # noqa
+
+from core.config import settings # noqa

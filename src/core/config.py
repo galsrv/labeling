@@ -1,29 +1,37 @@
-import os
-
-from dotenv import load_dotenv
 from fastapi.templating import Jinja2Templates
-from pydantic_settings import BaseSettings
-
-dotenv_path = os.path.join(os.path.dirname(__file__), '../../infra/.env')
-load_dotenv(dotenv_path)
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     """Класс настроек приложения."""
-    PROD_ENVIRONMENT: bool = os.getenv('PROD', 'False').lower() in ('true', '1')
+    model_config = SettingsConfigDict(env_file='../infra/.env', env_file_encoding='utf-8')
 
     APP_TITLE: str = 'Labeling Application'
 
-    HOST: str = os.getenv('BACKEND_HOST', '127.0.0.1')
-    PORT: int = int(os.getenv('BACKEND_PORT', 8000))
+    # Этот блок читаем из .env
 
-    DATABASE_URL: str = (
+    PROD_ENVIRONMENT: bool = False
+
+    BACKEND_HOST: str = '127.0.0.1'
+    BACKEND_PORT: int = 8000
+
+    POSTGRES_USER: str
+    POSTGRES_PASSWORD: str
+    POSTGRES_DB_HOST: str
+    POSTGRES_DB_PORT: str
+    POSTGRES_DB: str
+
+    @property
+    def DATABASE_URL(self) -> str:  # noqa: D102, N802
+        return (
         f'postgresql+asyncpg://'
-        f'{os.getenv('POSTGRES_USER')}:'
-        f'{os.getenv('POSTGRES_PASSWORD')}@'
-        f'{os.getenv('POSTGRES_DB_HOST')}:{os.getenv('POSTGRES_DB_PORT')}/'
-        f'{os.getenv('POSTGRES_DB')}'
+        f'{self.POSTGRES_USER}:'
+        f'{self.POSTGRES_PASSWORD}@'
+        f'{self.POSTGRES_DB_HOST}:{self.POSTGRES_DB_PORT}/'
+        f'{self.POSTGRES_DB}'
     )
+
+    # Роутинг и логирование
 
     OPENAPI_URL: str = '/api/openapi.json'
     DOCS_URL: str = '/api/docs'
@@ -81,12 +89,21 @@ class Settings(BaseSettings):
     CONNECT_TO_DEVICE_TIMEOUT: int = 2
     CONNECT_TO_DEVICE_ATTEMPTS: int = 3
     DEVICE_POLL_INTERVAL: float = 0.5
-    # WAIT_FOR_DEVICE_RESPONSE_TIMEOUT: int = 2
 
     # Сообщения пользователю
 
-    MESSAGE_ENTRY_DOESNT_EXIST: str = 'Запрошенная запись не существует'
-    MESSAGE_SAVE_DATA_ERROR: str = 'Ошибка сохрания записи. Проверьте введенные данные'
+    MESSAGE_DB_OBJECT_GET: str = 'DB SELECT: модель {model}, id {obj_id}'
+    MESSAGE_DB_OBJECT_GET_MULTI: str = 'DB SELECT: модель {model}, {number} записей отобрано'
+    MESSAGE_DB_OBJECT_CREATE: str = 'DB INSERT: модель {model}, id {obj_id}'
+    MESSAGE_DB_OBJECT_CREATE_MULTI: str = 'DB INSERT: модель {model}, {number} записей создано'
+    MESSAGE_DB_OBJECT_CREATE_ERROR: str = 'DB INSERT ERROR: модель {model}, ошибка {error}'
+    MESSAGE_DB_OBJECT_UPDATE: str = 'DB UPDATE: модель {model}, id {obj_id}'
+    MESSAGE_DB_OBJECT_UPDATE_MULTI: str = 'DB UPDATE: модель {model}, {number} записей изменено'
+    MESSAGE_DB_OBJECT_UPDATE_ERROR: str = 'DB UPDATE ERROR: модель {model}, ошибка {error}'
+    MESSAGE_DB_OBJECT_DOESNT_EXIST: str = 'DB NOT FOUND ERROR: модель {model}, id {obj_id}'
+    MESSAGE_DB_OBJECT_DELETE: str = 'DB DELETE: модель {model}, id {obj_id}'
+    MESSAGE_DB_OBJECT_DELETE_ALL: str = 'DB DELETE ALL: модель {model}'
+
     MESSAGE_METHOD_NOT_IMPLEMENTED: str = 'Метод не реализован для данного драйвера'
     MESSAGE_WRONG_FONT_ID: str = 'Неверно указан код шрифта для принтера'
     MESSAGE_WRONG_FILESIZE: str = 'Некорректный размер файла'
@@ -95,7 +112,6 @@ class Settings(BaseSettings):
 
     MESSAGE_COMMAND_SENT_SUCCESS: str = 'Команда успешно отправлена на устройство'
     MESSAGE_COMMAND_SENT_FAIL: str = 'Ошибка отправки команды на устройство'
-    MESSAGE_WRONG_RESPONSE_FORMAT: str = 'Неверный формат ответа от устройства'
     MESSAGE_DEVICE_RESPONSE_TIMEOUT: str = 'Превышен таймаут ожидания ответа от устройства'
     MESSAGE_DRIVER_NOT_FOUND: str = 'Драйвер для данного устройства не найден'
     MESSAGE_CONNECTION_SUCCESSFUL: str = 'Соединение с устройством успешно установлено'

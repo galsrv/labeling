@@ -132,16 +132,25 @@
     return Math.max(0, Math.min(100, pct));
   }
 
+  function normalizeStatus(status) {
+    if (status === 'CREATED' || status === 'Создано') return 'CREATED';
+    if (status === 'ACTIVE' || status === 'Активно') return 'ACTIVE';
+    if (status === 'CLOSED' || status === 'Закрыто') return 'CLOSED';
+    return String(status || '');
+  }
+
   function getProgressBarClass(status) {
-    if (status === 'CLOSED') return 'bg-success';
-    if (status === 'ACTIVE') return '';
+    const normalizedStatus = normalizeStatus(status);
+    if (normalizedStatus === 'CLOSED') return 'bg-success';
+    if (normalizedStatus === 'ACTIVE') return '';
     return 'bg-secondary';
   }
 
   function renderStatusBadge(status) {
-    if (status === 'CREATED') return '<span class="badge text-bg-secondary">Создано</span>';
-    if (status === 'ACTIVE') return '<span class="badge text-bg-primary">Активно</span>';
-    if (status === 'CLOSED') return '<span class="badge text-bg-success">Закрыто</span>';
+    const normalizedStatus = normalizeStatus(status);
+    if (normalizedStatus === 'CREATED') return '<span class="badge text-bg-secondary">Создано</span>';
+    if (normalizedStatus === 'ACTIVE') return '<span class="badge text-bg-primary">Активно</span>';
+    if (normalizedStatus === 'CLOSED') return '<span class="badge text-bg-success">Закрыто</span>';
     return `<span class="badge text-bg-dark">${status}</span>`;
   }
 
@@ -197,7 +206,7 @@
     orderProgressBar.setAttribute('aria-valuenow', String(progressPct));
     orderProgressPct.textContent = `${progressPct}%`;
     orderProgressText.textContent = `${Number(order.produced_kg || 0).toFixed(3)} / ${Number(order.ordered_kg || 0).toFixed(3)} кг`;
-    setVisible(orderClosedText, order.status === 'CLOSED');
+    setVisible(orderClosedText, normalizeStatus(order.status) === 'CLOSED');
   }
 
   async function loadOrder() {
@@ -252,6 +261,17 @@
       const data = await response.json();
       if (data && typeof data.ok === 'boolean') {
         setBatchPrintStatus(data.ok, data.message || String(data.ok));
+        if (data.ok) {
+          try {
+            const refreshedOrderResponse = await fetch(orderApiUrl);
+            if (refreshedOrderResponse.ok) {
+              const refreshedOrder = await refreshedOrderResponse.json();
+              renderOrder(refreshedOrder);
+            }
+          } catch (_) {
+            // ignore refresh error, printing result is already shown
+          }
+        }
       } else {
         setBatchPrintStatus(false, 'Некорректный ответ сервера.');
       }

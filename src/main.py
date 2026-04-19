@@ -21,11 +21,11 @@ fastapi_app.include_router(websocket_router)
 register_exception_handlers(fastapi_app)
 
 if __name__ == '__main__':
-    logger.info(f'Сервер FastAPI запущен на {s.HOST}:{s.PORT}')
+    logger.info(f'Сервер FastAPI запущен на {s.BACKEND_HOST}:{s.BACKEND_PORT}')
 
     uvicorn.run(
         'main:fastapi_app',
-        host=s.HOST,
-        port=s.PORT,
+        host=s.BACKEND_HOST,
+        port=s.BACKEND_PORT,
         reload=False if s.PROD_ENVIRONMENT else True,
     )

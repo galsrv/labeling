@@ -83,16 +83,25 @@
     return Math.max(0, Math.min(100, pct));
   }
 
+  function normalizeStatus(status) {
+    if (status === 'CREATED' || status === 'Создано') return 'CREATED';
+    if (status === 'ACTIVE' || status === 'Активно') return 'ACTIVE';
+    if (status === 'CLOSED' || status === 'Закрыто') return 'CLOSED';
+    return String(status || '');
+  }
+
   function getProgressBarClass(status) {
-    if (status === 'CLOSED') return 'bg-success';
-    if (status === 'ACTIVE') return '';
+    const normalizedStatus = normalizeStatus(status);
+    if (normalizedStatus === 'CLOSED') return 'bg-success';
+    if (normalizedStatus === 'ACTIVE') return '';
     return 'bg-secondary';
   }
 
   function getStatusBadge(status) {
-    if (status === 'CREATED') return '<span class="badge text-bg-secondary">Создано</span>';
-    if (status === 'ACTIVE') return '<span class="badge text-bg-primary">Активно</span>';
-    if (status === 'CLOSED') return '<span class="badge text-bg-success">Закрыто</span>';
+    const normalizedStatus = normalizeStatus(status);
+    if (normalizedStatus === 'CREATED') return '<span class="badge text-bg-secondary">Создано</span>';
+    if (normalizedStatus === 'ACTIVE') return '<span class="badge text-bg-primary">Активно</span>';
+    if (normalizedStatus === 'CLOSED') return '<span class="badge text-bg-success">Закрыто</span>';
     return `<span class="badge text-bg-dark">${status}</span>`;
   }
 
@@ -123,7 +132,7 @@
           </div>
         </td>
         <td class="text-end text-nowrap">
-          ${order.status === 'CLOSED'
+          ${normalizeStatus(order.status) === 'CLOSED'
             ? '<a class="btn btn-sm btn-outline-secondary disabled" aria-disabled="true">Запустить</a>'
             : `<a href="${getOrderExecutionUrl(order.id)}" class="btn btn-sm btn-primary">Запустить</a>`}
         </td>

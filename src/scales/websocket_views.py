@@ -6,10 +6,11 @@ webscoket_scales_router = APIRouter()
 
 
 @webscoket_scales_router.websocket(
-        '/ws_get_weight_stream/',
+        '/{scales_id}/ws_get_weight_stream/',
         name='websocket_get_weight_stream',
 )
 async def websocket_get_weight_stream(
+    scales_id: int,
     websocket: WebSocket,
 ) -> None:
     """Получаем вес с весов в потоке для вывода в интерфейсе."""

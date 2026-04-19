@@ -87,11 +87,11 @@
         </div>
 
         <div class="col-12 col-md-4">
-          <label for="testPrinter" class="form-label">Принтер</label>
-          <select id="testPrinter" class="form-select"></select>
+          <label class="form-label">Принтер</label>
+          <div id="testPrinterInfo" class="form-control-plaintext">Загрузка...</div>
         </div>
 
-        <div class="col-12 col-md-3 d-grid">
+        <div class="col-12 col-md-3 d-grid" id="testPrintBtnWrap">
           <button type="button" class="btn btn-outline-primary" id="testPrintBtn">
             Отправить на печать
           </button>
@@ -145,21 +145,23 @@
   const controlCodesButtons = document.getElementById('controlCodesButtons');
   const labelVariablesButtons = document.getElementById('labelVariablesButtons');
   const testBtn = document.getElementById('testPrintBtn');
+  const testBtnWrap = document.getElementById('testPrintBtnWrap');
   const testStatus = document.getElementById('testPrintStatus');
   const testItem = document.getElementById('testItem');
-  const testPrinter = document.getElementById('testPrinter');
+  const testPrinterInfo = document.getElementById('testPrinterInfo');
   const copyBtn = document.getElementById('copyBtn');
 
   const labelsApiBaseUrl = '/api/v1/labels/';
   const driversApiUrl = '/api/v1/drivers/printers';
   const itemsApiUrl = '/api/v1/items/';
-  const printersApiUrl = '/api/v1/printers/';
+  const workplacesApiBaseUrl = '/api/v1/workplaces/';
   const controlCodesApiUrl = '/api/v1/labels/control_codes';
   const labelVariablesApiUrl = '/api/v1/labels/variables';
   const labelsListUrl = '{{ url_for("web_get_all_labels") }}';
   const labelEditUrlTemplate = '{{ url_for("web_update_label_form", label_id=0) }}';
   const testPrintUrl = `${labelsApiBaseUrl}print_label_test`;
   const minEditorLines = 10;
+  let currentPrinterId = null;
 
   function setVisible(element, isVisible) {
     if (!element) return;
@@ -192,6 +194,12 @@
     else if (kind === 'err') testStatus.classList.add('text-danger');
     else testStatus.classList.add('text-muted');
     testStatus.textContent = message;
+  }
+
+  function getCookie(name) {
+    const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const match = document.cookie.match(new RegExp(`(?:^|; )${escapedName}=([^;]*)`));
+    return match ? decodeURIComponent(match[1]) : null;
   }
 
   function persistFlashAndRedirect(ok, message) {
@@ -330,7 +338,8 @@
 
   function autoResize() {
     const scroller = editor.getScrollerElement();
-    const minHeight = editor.defaultTextHeight() * minEditorLines;
+    const lineHeight = editor.defaultTextHeight() || 20;
+    const minHeight = lineHeight * minEditorLines;
     scroller.style.height = 'auto';
     editor.setSize(null, Math.max(scroller.scrollHeight, minHeight));
   }
@@ -386,14 +395,33 @@
     }
   }
 
-  function populatePrinters(printers) {
-    testPrinter.innerHTML = '';
+  function setPrinterInfo(message, printerId = null) {
+    currentPrinterId = printerId;
+    testPrinterInfo.textContent = message;
+    setVisible(testBtnWrap, Boolean(printerId));
+  }
 
-    for (const printer of printers) {
-      const option = document.createElement('option');
-      option.value = printer.id;
-      option.textContent = `${printer.ip} - ${printer.description}`;
-      testPrinter.appendChild(option);
+  async function resolveWorkplacePrinter() {
+    const workplaceId = getCookie('workplace_id');
+
+    if (!workplaceId) {
+      setPrinterInfo('Не определено рабочее место');
+      return;
+    }
+
+    try {
+      const workplace = await fetchJson(`${workplacesApiBaseUrl}${workplaceId}`);
+      const printer = workplace && workplace.printer1;
+
+      if (!printer) {
+        setPrinterInfo('На рабочем месте не определен принтер');
+        return;
+      }
+
+      setPrinterInfo(`${printer.ip} - ${printer.description}`, printer.id);
+    } catch (_) {
+      setPrinterInfo('Не определено рабочее место');
+      return;
     }
   }
 
@@ -421,7 +449,6 @@
       const requests = [
         fetchJson(driversApiUrl),
         fetchJson(itemsApiUrl),
-        fetchJson(printersApiUrl),
         fetchJson(controlCodesApiUrl),
         fetchJson(labelVariablesApiUrl),
       ];
@@ -430,11 +457,10 @@
         requests.push(fetchJson(`${labelsApiBaseUrl}${labelId}`));
       }
 
-      const [drivers, items, printers, controlCodes, labelVariables, label] = await Promise.all(requests);
+      const [drivers, items, controlCodes, labelVariables, label] = await Promise.all(requests);
 
       populateDrivers(drivers, label ? label.driver_name : '');
       populateItems(items);
-      populatePrinters(printers);
       renderTokenButtons(controlCodesButtons, controlCodes, 'btn-outline-primary');
       renderTokenButtons(labelVariablesButtons, labelVariables, 'btn-outline-success');
 
@@ -443,9 +469,14 @@
       }
 
       setupInlineEdit();
+      await resolveWorkplacePrinter();
 
       setVisible(labelEditLoading, false);
       setVisible(labelForm, true);
+      requestAnimationFrame(() => {
+        editor.refresh();
+        autoResize();
+      });
     } catch (error) {
       if (error instanceof Error && error.message === 'HTTP 404') {
         setError('Объект не найден.');
@@ -550,11 +581,15 @@
       testBtn.disabled = true;
 
       try {
+        if (!currentPrinterId) {
+          setStatus('На рабочем месте не определен принтер', 'err');
+          return;
+        }
+
         const payload = {
           print_command: editor.getValue(),
           item_id: Number(testItem.value),
-          printer_id: Number(testPrinter.value),
-          driver_name: driverSelect.value,
+          printer_id: currentPrinterId,
         };
 
         const response = await fetch(testPrintUrl, {
@@ -595,6 +630,11 @@
       border-radius: .375rem;
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
       font-size: 0.95rem;
+      min-height: 16rem;
+    }
+
+    .CodeMirror-scroll {
+      min-height: 16rem;
     }
   `;
   document.head.appendChild(style);

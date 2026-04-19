@@ -1,7 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.config import settings as s
-from core.exceptions import ObjectNotFound
 from items.repository import items_repo
 from items.schemas import ItemReadSchema
 
@@ -17,10 +15,6 @@ class ItemsService:
     async def get(self, session: AsyncSession, item_id: int) -> ItemReadSchema:
         """Возвращаем из БД продукт по его id."""
         item = await items_repo.get(session, item_id)
-
-        if item is None:
-            raise ObjectNotFound(s.MESSAGE_ENTRY_DOESNT_EXIST)
-
         item_dto = ItemReadSchema.model_validate(item)
         return item_dto
 

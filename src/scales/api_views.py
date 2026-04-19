@@ -78,7 +78,7 @@ async def delete_scales(
     await scales_service.delete(session, scales_id)
 
 
-@api_scales_router.get(
+@api_scales_router.post(
         '/{scales_id}/get_weight',
         response_model=JsonToFrontendResponse,
         response_model_exclude_none=True,
@@ -89,5 +89,8 @@ async def delete_scales(
 async def web_scales_get_weight(
     data_input: ScalesShortSchema,
 ) -> JsonToFrontendResponse:
-    """Получаем вес с весов для вывода в интерфейсе."""
+    """Получаем вес с весов для вывода в интерфейсе.
+
+    Правильнее было бы делать GET запрос, но пришлось бы отказаться от тела запроса и модель ScalesShortSchema собирать руками
+    """
     return await scales_service.get_weight(data_input)

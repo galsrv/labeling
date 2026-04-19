@@ -27,4 +27,3 @@ class PrintLabelTestPayload(BaseModel):
     print_command: str
     item_id: int
     printer_id: int
-    driver_name: Annotated[str, AfterValidator(printer_driver_name_validator)]

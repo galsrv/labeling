@@ -47,7 +47,7 @@ html_router.include_router(html_sgtin_router, prefix='/sgtins', tags=['html page
 
 websocket_router = APIRouter(prefix=s.WEBSOCKET_URL_PREFIX)
 
-websocket_router.include_router(webscoket_scales_router, prefix='/scakes', tags=['websockets'])
+websocket_router.include_router(webscoket_scales_router, prefix='/scales', tags=['websockets'])
 
 root_router = APIRouter()
 

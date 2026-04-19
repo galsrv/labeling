@@ -98,7 +98,7 @@ class OrdersService:
             # Обновляем статус у напечатанных кодов маркировки
             await sgtin_service.batch_status_change(session, printed_sgtins_ids, SgtinStatus.PRINTED)
             # Обновляем ФАКТ у задания на основании числа напечатанных этикеток
-            await self.update_order_amounts(session, order_dto.id, order_dto.item.nominal_weight * len(printed_sgtins_ids))
+            await self.update_order_amounts(session, order_dto.id, order_dto.produced_kg + order_dto.item.nominal_weight * len(printed_sgtins_ids))
 
         return JsonToFrontendResponse(ok=True, message=f'{s.MESSAGE_NUMBER_OF_LABELS_PRINTED} {number_to_print}')
 

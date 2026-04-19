@@ -207,7 +207,7 @@
   const driversApiUrl = '/api/v1/drivers/scales';
   const scalesApiBaseUrl = '/api/v1/scales/';
   const getWeightUrl = `${scalesApiBaseUrl}${scalesId}/get_weight`;
-  const weightStreamPath = `/ws/scakes/${scalesId}/ws_get_weight_stream/`;
+  const weightStreamPath = `/ws/scales/${scalesId}/ws_get_weight_stream/`;
   const scalesListUrl = '{{ url_for("web_get_all_scales") }}';
 
   function setVisible(element, isVisible) {
@@ -459,13 +459,17 @@
     getWeightBtn.disabled = true;
 
     try {
-      const params = new URLSearchParams({
-        ip: ipInput.value.trim(),
-        port: String(portInput.value),
-        driver_name: driverSelect.value || '',
+      const res = await fetch(getWeightUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ip: ipInput.value.trim(),
+          port: Number(portInput.value),
+          driver_name: driverSelect.value || '',
+        }),
       });
-
-      const res = await fetch(`${getWeightUrl}?${params.toString()}`);
 
       if (!res.ok) {
         const message = await parseApiError(res, 'Не удалось получить вес.');
