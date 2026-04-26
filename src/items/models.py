@@ -2,7 +2,7 @@ from sqlalchemy import CheckConstraint, ForeignKey, Index, Integer, BigInteger, 
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from core.config import settings as s
-from core.database import AppBaseClass
+from database.config import AppBaseClass
 from labels.models import LabelTemplateORM
 
 

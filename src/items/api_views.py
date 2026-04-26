@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.database import get_async_session
+from database.config import get_async_session
 from items.schemas import ItemReadSchema
 from items.service import items_service
 

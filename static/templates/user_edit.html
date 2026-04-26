@@ -1,0 +1,532 @@
+{% extends "base.html" %}
+
+{% set is_create = (mode == 'create') %}
+{% set page_title = 'Создать пользователя' if is_create else 'Пользователь' %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div id="userEditLoading" class="alert alert-secondary">Загрузка...</div>
+<div id="userEditError" class="alert alert-danger d-none"></div>
+<div id="userEditSuccess" class="alert alert-success d-none"></div>
+<div id="userEditWarning" class="alert alert-warning d-none"></div>
+
+<form id="userForm" autocomplete="off" class="d-none">
+  <div class="card shadow-sm">
+    <div class="card-header">
+      <div class="fw-semibold">{{ 'Создание пользователя' if is_create else 'Редактирование пользователя' }}</div>
+    </div>
+
+    <div class="card-body">
+      <dl class="row mb-4">
+        {% if not is_create %}
+          <dt class="col-sm-3">ID</dt>
+          <dd class="col-sm-9" id="userIdValue"></dd>
+        {% endif %}
+
+        <dt class="col-sm-3">Юзернейм</dt>
+        <dd class="col-sm-9">
+          {% if not is_create %}
+            <span id="usernameDisplay"></span>
+          {% endif %}
+          <input
+            id="usernameInput"
+            class="form-control {% if not is_create %}d-none{% endif %}"
+            type="text"
+            maxlength="15"
+            {% if not is_create %}readonly{% endif %}
+            required
+          >
+        </dd>
+
+        <dt class="col-sm-3">Имя</dt>
+        <dd class="col-sm-9">
+          {% if not is_create %}
+            <span id="firstNameDisplay" role="button" title="Нажмите, чтобы изменить"></span>
+          {% endif %}
+          <input
+            id="firstNameInput"
+            class="form-control {% if not is_create %}d-none mt-2{% endif %}"
+            type="text"
+            maxlength="15"
+            required
+          >
+          {% if not is_create %}
+            <div id="firstNameHint" class="form-text d-none">
+              Enter — сохранить, Esc — отмена
+            </div>
+          {% endif %}
+        </dd>
+
+        <dt class="col-sm-3">Фамилия</dt>
+        <dd class="col-sm-9">
+          {% if not is_create %}
+            <span id="lastNameDisplay" role="button" title="Нажмите, чтобы изменить"></span>
+          {% endif %}
+          <input
+            id="lastNameInput"
+            class="form-control {% if not is_create %}d-none mt-2{% endif %}"
+            type="text"
+            maxlength="15"
+            required
+          >
+          {% if not is_create %}
+            <div id="lastNameHint" class="form-text d-none">
+              Enter — сохранить, Esc — отмена
+            </div>
+          {% endif %}
+        </dd>
+
+        <dt class="col-sm-3">Активен</dt>
+        <dd class="col-sm-9">
+          <div class="form-check pt-1">
+            <input id="isActiveInput" class="form-check-input" type="checkbox" checked>
+          </div>
+        </dd>
+
+        <dt class="col-sm-3">Роль</dt>
+        <dd class="col-sm-9">
+          <select id="roleSelect" class="form-select" required>
+            <option value="">Выберите роль</option>
+          </select>
+        </dd>
+
+        <dt class="col-sm-3">Пароль</dt>
+        <dd class="col-sm-9">
+          <input
+            id="passwordInput"
+            class="form-control"
+            type="password"
+            maxlength="255"
+            {% if is_create %}required{% endif %}
+          >
+        </dd>
+
+        <dt class="col-sm-3">Повтор пароля</dt>
+        <dd class="col-sm-9">
+          <input
+            id="passwordConfirmInput"
+            class="form-control"
+            type="password"
+            maxlength="255"
+            {% if is_create %}required{% endif %}
+          >
+          <div id="passwordError" class="form-text text-danger d-none"></div>
+        </dd>
+
+        {% if not is_create %}
+          <dt class="col-sm-3">Создан</dt>
+          <dd class="col-sm-9" id="createdInfoValue">—</dd>
+
+          <dt class="col-sm-3">Изменен</dt>
+          <dd class="col-sm-9" id="updatedInfoValue">—</dd>
+        {% endif %}
+      </dl>
+    </div>
+
+    <div class="card-footer bg-transparent d-flex justify-content-end gap-2">
+      <button type="submit" class="btn btn-sm btn-primary">Сохранить</button>
+      <a href="{{ url_for('web_get_all_users') }}" class="btn btn-sm btn-outline-secondary">Назад</a>
+    </div>
+  </div>
+</form>
+
+<script>
+  const isCreate = {{ 'true' if is_create else 'false' }};
+  const userId = {{ request.path_params.get('user_id', 0) if not is_create else 0 }};
+
+  const usersApiBaseUrl = '/api/v1/users/';
+  const rolesApiUrl = `${usersApiBaseUrl}roles`;
+  const userEditUrlTemplate = '{{ url_for("web_update_user_form", user_id=0) }}';
+
+  const userEditLoading = document.getElementById('userEditLoading');
+  const userEditError = document.getElementById('userEditError');
+  const userEditSuccess = document.getElementById('userEditSuccess');
+  const userEditWarning = document.getElementById('userEditWarning');
+  const userForm = document.getElementById('userForm');
+
+  const userIdValue = document.getElementById('userIdValue');
+  const usernameDisplay = document.getElementById('usernameDisplay');
+  const usernameInput = document.getElementById('usernameInput');
+  const firstNameDisplay = document.getElementById('firstNameDisplay');
+  const firstNameInput = document.getElementById('firstNameInput');
+  const firstNameHint = document.getElementById('firstNameHint');
+  const lastNameDisplay = document.getElementById('lastNameDisplay');
+  const lastNameInput = document.getElementById('lastNameInput');
+  const lastNameHint = document.getElementById('lastNameHint');
+  const isActiveInput = document.getElementById('isActiveInput');
+  const roleSelect = document.getElementById('roleSelect');
+  const passwordInput = document.getElementById('passwordInput');
+  const passwordConfirmInput = document.getElementById('passwordConfirmInput');
+  const passwordError = document.getElementById('passwordError');
+  const createdInfoValue = document.getElementById('createdInfoValue');
+  const updatedInfoValue = document.getElementById('updatedInfoValue');
+
+  let initialUser = null;
+  let currentRoleId = null;
+
+  function setVisible(element, isVisible) {
+    if (!element) return;
+    element.classList.toggle('d-none', !isVisible);
+  }
+
+  function getUserEditUrl(currentUserId) {
+    return userEditUrlTemplate.replace(/0$/, String(currentUserId));
+  }
+
+  function persistFlash(ok, message) {
+    sessionStorage.setItem('usersFlash', JSON.stringify({ ok, message }));
+  }
+
+  function showError(message) {
+    setVisible(userEditSuccess, false);
+    setVisible(userEditWarning, false);
+    userEditError.textContent = message;
+    setVisible(userEditError, true);
+  }
+
+  function showSuccess(message) {
+    setVisible(userEditError, false);
+    setVisible(userEditWarning, false);
+    userEditSuccess.textContent = message;
+    setVisible(userEditSuccess, true);
+  }
+
+  function showWarning(message) {
+    setVisible(userEditError, false);
+    userEditWarning.textContent = message;
+    setVisible(userEditWarning, true);
+  }
+
+  function showFlashMessage() {
+    const raw = sessionStorage.getItem('usersFlash');
+    if (!raw) return;
+
+    sessionStorage.removeItem('usersFlash');
+
+    try {
+      const flash = JSON.parse(raw);
+      if (flash.ok) {
+        showSuccess(flash.message || 'Операция выполнена.');
+      } else {
+        showError(flash.message || 'Не удалось выполнить операцию.');
+      }
+    } catch (_) {
+      showSuccess(raw);
+    }
+  }
+
+  async function fetchJson(url) {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw response;
+    }
+    return await response.json();
+  }
+
+  async function parseApiError(response, fallbackMessage) {
+    try {
+      const data = await response.json();
+      if (data && typeof data === 'object') {
+        if (typeof data.detail === 'string') {
+          return data.detail;
+        }
+        if (Array.isArray(data.detail) && data.detail.length > 0) {
+          const first = data.detail[0];
+          if (first && typeof first.msg === 'string') {
+            return first.msg;
+          }
+        }
+        if (typeof data.message === 'string') {
+          return data.message;
+        }
+      }
+    } catch (_) {
+      // ignore
+    }
+    return fallbackMessage;
+  }
+
+  function formatUserName(user) {
+    if (!user) return '—';
+    const fullName = `${user.first_name ?? ''} ${user.last_name ?? ''}`.trim();
+    return fullName || user.username || '—';
+  }
+
+  function formatAuditInfo(user, timestamp) {
+    const actor = formatUserName(user);
+    const formattedTimestamp = formatDateTime(timestamp);
+    return formattedTimestamp ? `${actor} — ${formattedTimestamp}` : actor;
+  }
+
+  function formatDateTime(value) {
+    if (!value) return '';
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return String(value);
+    }
+
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+
+    return `${day}.${month}.${year} ${hours}:${minutes}`;
+  }
+
+  function setupInlineEdit(display, input, hint) {
+    if (isCreate || !display || !input || !hint) return;
+
+    function openEdit() {
+      display.classList.add('d-none');
+      input.classList.remove('d-none');
+      hint.classList.remove('d-none');
+      input.focus();
+      input.select();
+    }
+
+    function closeEdit(save) {
+      if (save && input.value.trim()) {
+        display.textContent = input.value.trim();
+      } else {
+        input.value = display.textContent.trim();
+      }
+      input.classList.add('d-none');
+      hint.classList.add('d-none');
+      display.classList.remove('d-none');
+    }
+
+    display.addEventListener('click', openEdit);
+    input.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        closeEdit(true);
+      }
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeEdit(false);
+      }
+    });
+    input.addEventListener('blur', () => closeEdit(true));
+  }
+
+  function populateRoleSelect(roles, selectedRoleId = null) {
+    roleSelect.innerHTML = '';
+
+    for (const role of roles) {
+      const option = document.createElement('option');
+      option.value = String(role.id);
+      option.textContent = role.name ?? `Роль #${role.id}`;
+      option.selected = role.id === selectedRoleId;
+      roleSelect.appendChild(option);
+    }
+
+    roleSelect.disabled = false;
+    if (selectedRoleId != null) {
+      currentRoleId = selectedRoleId;
+    } else if (roles.length > 0) {
+      currentRoleId = roles[0].id;
+      roleSelect.value = String(roles[0].id);
+    } else {
+      currentRoleId = null;
+    }
+  }
+
+  function populateUser(user, roles) {
+    initialUser = user;
+    currentRoleId = user.role?.id ?? null;
+
+    if (userIdValue) userIdValue.textContent = `#${user.id}`;
+    usernameInput.value = user.username ?? '';
+    if (usernameDisplay) usernameDisplay.textContent = user.username ?? '';
+    firstNameInput.value = user.first_name ?? '';
+    lastNameInput.value = user.last_name ?? '';
+    if (firstNameDisplay) firstNameDisplay.textContent = user.first_name ?? '';
+    if (lastNameDisplay) lastNameDisplay.textContent = user.last_name ?? '';
+    isActiveInput.checked = Boolean(user.is_active);
+
+    populateRoleSelect(roles, user.role?.id ?? null);
+
+    if (createdInfoValue) {
+      createdInfoValue.textContent = formatAuditInfo(user.created_by, user.created_at);
+    }
+    if (updatedInfoValue) {
+      updatedInfoValue.textContent = formatAuditInfo(user.updated_by, user.updated_at);
+    }
+  }
+
+  function validatePasswords() {
+    const password = passwordInput.value;
+    const passwordConfirm = passwordConfirmInput.value;
+
+    if (!password && !passwordConfirm) {
+      setVisible(passwordError, false);
+      passwordError.textContent = '';
+      return true;
+    }
+
+    if (password !== passwordConfirm) {
+      passwordError.textContent = 'Пароли не совпадают.';
+      setVisible(passwordError, true);
+      return false;
+    }
+
+    setVisible(passwordError, false);
+    passwordError.textContent = '';
+    return true;
+  }
+
+  async function hashPassword(value) {
+    const bytes = new TextEncoder().encode(value);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', bytes);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map((byte) => byte.toString(16).padStart(2, '0')).join('');
+  }
+
+  function buildCreatePayload(passwordHash) {
+    return {
+      username: usernameInput.value.trim(),
+      first_name: firstNameInput.value.trim(),
+      last_name: lastNameInput.value.trim(),
+      is_active: isActiveInput.checked,
+      role_id: currentRoleId,
+      password_hash: passwordHash,
+      created_by_id: 1,
+      updated_by_id: 1,
+    };
+  }
+
+  function buildUpdatePayload(passwordHash) {
+    const payload = {
+      updated_by_id: 1,
+    };
+
+    if (firstNameInput.value.trim() !== (initialUser?.first_name ?? '')) {
+      payload.first_name = firstNameInput.value.trim();
+    }
+    if (lastNameInput.value.trim() !== (initialUser?.last_name ?? '')) {
+      payload.last_name = lastNameInput.value.trim();
+    }
+    if (isActiveInput.checked !== Boolean(initialUser?.is_active)) {
+      payload.is_active = isActiveInput.checked;
+    }
+    if (currentRoleId != null && currentRoleId !== initialUser?.role?.id) {
+      payload.role_id = currentRoleId;
+    }
+    if (passwordHash) {
+      payload.password_hash = passwordHash;
+    }
+
+    return payload;
+  }
+
+  async function loadFormData() {
+    try {
+      const roles = await fetchJson(rolesApiUrl);
+
+      if (!isCreate) {
+        const user = await fetchJson(`${usersApiBaseUrl}${userId}`);
+        populateUser(user, roles);
+      } else {
+        populateRoleSelect(roles, null);
+      }
+
+      setVisible(userEditLoading, false);
+      setVisible(userForm, true);
+      showFlashMessage();
+    } catch (error) {
+      setVisible(userEditLoading, false);
+      if (error.status === 404) {
+        showError('Объект не найден.');
+      } else {
+        showError('Не удалось загрузить данные формы.');
+      }
+    }
+  }
+
+  passwordInput.addEventListener('input', validatePasswords);
+  passwordConfirmInput.addEventListener('input', validatePasswords);
+  roleSelect.addEventListener('change', () => {
+    currentRoleId = roleSelect.value ? Number(roleSelect.value) : null;
+  });
+
+  setupInlineEdit(firstNameDisplay, firstNameInput, firstNameHint);
+  setupInlineEdit(lastNameDisplay, lastNameInput, lastNameHint);
+
+  userForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    setVisible(userEditError, false);
+    setVisible(userEditSuccess, false);
+
+    const username = usernameInput.value.trim();
+    const firstName = firstNameInput.value.trim();
+    const lastName = lastNameInput.value.trim();
+    const password = passwordInput.value;
+    const passwordConfirm = passwordConfirmInput.value;
+
+    if (!username || !firstName || !lastName) {
+      showError('Заполните обязательные поля.');
+      return;
+    }
+
+    if (!validatePasswords()) {
+      return;
+    }
+
+    if (!currentRoleId) {
+      showError('Выберите роль.');
+      return;
+    }
+
+    if (isCreate && (!password || !passwordConfirm)) {
+      showError('Заполните пароль и подтверждение пароля.');
+      return;
+    }
+
+    let passwordHash = null;
+    if (password) {
+      passwordHash = await hashPassword(password);
+      if (passwordHash.length > 255) {
+        showError('Хэш пароля слишком длинный.');
+        return;
+      }
+    }
+
+    const payload = isCreate
+      ? buildCreatePayload(passwordHash)
+      : buildUpdatePayload(passwordHash);
+
+    try {
+      const response = await fetch(
+        isCreate ? usersApiBaseUrl : `${usersApiBaseUrl}${userId}`,
+        {
+          method: isCreate ? 'POST' : 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        },
+      );
+
+      if (!response.ok) {
+        const message = await parseApiError(
+          response,
+          isCreate ? 'Не удалось создать пользователя.' : 'Не удалось сохранить изменения.'
+        );
+        showError(message);
+        return;
+      }
+
+      const user = await response.json();
+      persistFlash(true, isCreate ? 'Пользователь создан.' : 'Пользователь сохранен.');
+      window.location.href = getUserEditUrl(user.id);
+    } catch (_) {
+      showError(isCreate ? 'Не удалось создать пользователя.' : 'Не удалось сохранить изменения.');
+    }
+  });
+
+  loadFormData();
+</script>
+{% endblock %}

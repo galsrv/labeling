@@ -12,6 +12,8 @@ from sgtins.api_views import api_sgtin_router
 from scales.api_views import api_scales_router
 from printers.api_views import api_printers_router
 from workplaces.api_views import api_workplaces_router
+from users.api_views import api_users_router
+from auth.api_views import api_auth_router
 
 from items.html_views import html_items_router
 from labels.html_views import html_labels_router
@@ -20,11 +22,14 @@ from scales.html_views import html_scales_router
 from sgtins.html_views import html_sgtin_router
 from orders.html_views import html_orders_router
 from workplaces.html_views import html_workplaces_router
+from users.html_views import html_users_router
 
 from scales.websocket_views import webscoket_scales_router
 
 api_router = APIRouter(prefix=s.API_URL_PREFIX)
 
+api_router.include_router(api_auth_router, prefix='/auth', tags=['auth'])
+api_router.include_router(api_users_router, prefix='/users', tags=['users'])
 api_router.include_router(api_items_router, prefix='/items', tags=['items'])
 api_router.include_router(api_orders_router, prefix='/orders', tags=['orders'])
 api_router.include_router(api_sgtin_router, prefix='/sgtins', tags=['sgtins'])
@@ -41,6 +46,7 @@ html_router.include_router(html_items_router, prefix='/items', tags=['html pages
 html_router.include_router(html_orders_router, prefix='/orders', tags=['html pages'])
 html_router.include_router(html_scales_router, prefix='/scales', tags=['html pages'])
 html_router.include_router(html_printers_router, prefix='/printers', tags=['html pages'])
+html_router.include_router(html_users_router, prefix='/users', tags=['html pages'])
 html_router.include_router(html_workplaces_router, prefix='/workplaces', tags=['html pages'])
 html_router.include_router(html_labels_router, prefix='/labels', tags=['html pages'])
 html_router.include_router(html_sgtin_router, prefix='/sgtins', tags=['html pages'])

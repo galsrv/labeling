@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Cookie, Depends, Form
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.database import get_async_session
+from database.config import get_async_session
 from core.dependencies import logging_dependency
 from frontend.responses import JsonToFrontendResponse
 from orders.schemas import OrderReadSchema

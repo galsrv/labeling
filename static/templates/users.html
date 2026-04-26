@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+
+{% block title %}Пользователи{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="mb-0">Пользователи</h1>
+  <a href="{{ url_for('web_create_user_form') }}" class="btn btn-primary">
+    Создать
+  </a>
+</div>
+
+<div id="usersSuccess" class="alert alert-success d-none"></div>
+<div id="usersError" class="alert alert-danger d-none"></div>
+<div id="usersLoading" class="alert alert-secondary">Загрузка...</div>
+<div id="usersEmpty" class="alert alert-info d-none">Пользователи не найдены.</div>
+
+<div id="usersTableWrapper" class="table-responsive d-none">
+  <table class="table table-hover align-middle">
+    <colgroup>
+      <col style="width: 22%;">
+      <col style="width: 18%;">
+      <col style="width: 18%;">
+      <col style="width: 12%;">
+      <col style="width: 30%;">
+    </colgroup>
+    <thead class="table-dark">
+      <tr>
+        <th>Юзернейм</th>
+        <th>Имя</th>
+        <th>Фамилия</th>
+        <th>Активен</th>
+        <th>Роль</th>
+      </tr>
+    </thead>
+    <tbody id="usersTableBody"></tbody>
+  </table>
+</div>
+
+<script>
+  const usersApiUrl = '/api/v1/users/';
+  const userEditUrlTemplate = '{{ url_for("web_update_user_form", user_id=0) }}';
+
+  const usersSuccess = document.getElementById('usersSuccess');
+  const usersError = document.getElementById('usersError');
+  const usersLoading = document.getElementById('usersLoading');
+  const usersEmpty = document.getElementById('usersEmpty');
+  const usersTableWrapper = document.getElementById('usersTableWrapper');
+  const usersTableBody = document.getElementById('usersTableBody');
+
+  function setVisible(element, isVisible) {
+    element.classList.toggle('d-none', !isVisible);
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;');
+  }
+
+  function getUserEditUrl(userId) {
+    return userEditUrlTemplate.replace(/0$/, String(userId));
+  }
+
+  function showFlashMessage() {
+    const raw = sessionStorage.getItem('usersFlash');
+    if (!raw) return;
+
+    sessionStorage.removeItem('usersFlash');
+
+    try {
+      const flash = JSON.parse(raw);
+      if (flash.ok) {
+        usersSuccess.textContent = flash.message || 'Операция выполнена.';
+        setVisible(usersSuccess, true);
+      } else {
+        usersError.textContent = flash.message || 'Не удалось выполнить операцию.';
+        setVisible(usersError, true);
+      }
+    } catch (_) {
+      usersSuccess.textContent = raw;
+      setVisible(usersSuccess, true);
+    }
+  }
+
+  function renderUsers(users) {
+    usersTableBody.innerHTML = '';
+
+    for (const user of users) {
+      const row = document.createElement('tr');
+      row.role = 'button';
+      row.classList.add(user.is_active ? 'table-light' : 'table-secondary');
+      row.innerHTML = `
+        <td class="fw-semibold">${escapeHtml(user.username)}</td>
+        <td>${escapeHtml(user.first_name)}</td>
+        <td>${escapeHtml(user.last_name)}</td>
+        <td>
+          <span class="badge text-bg-${user.is_active ? 'success' : 'secondary'}">
+            ${user.is_active ? 'Да' : 'Нет'}
+          </span>
+        </td>
+        <td>${escapeHtml(user.role?.name ?? '—')}</td>
+      `;
+      row.addEventListener('click', () => {
+        window.location.href = getUserEditUrl(user.id);
+      });
+      usersTableBody.appendChild(row);
+    }
+  }
+
+  async function loadUsers() {
+    setVisible(usersLoading, true);
+    setVisible(usersError, false);
+    setVisible(usersEmpty, false);
+    setVisible(usersTableWrapper, false);
+
+    try {
+      const response = await fetch(usersApiUrl);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const users = await response.json();
+      setVisible(usersLoading, false);
+
+      if (!Array.isArray(users) || users.length === 0) {
+        setVisible(usersEmpty, true);
+        return;
+      }
+
+      renderUsers(users);
+      setVisible(usersTableWrapper, true);
+    } catch (_) {
+      setVisible(usersLoading, false);
+      usersError.textContent = 'Не удалось загрузить список пользователей.';
+      setVisible(usersError, true);
+    }
+  }
+
+  showFlashMessage();
+  loadUsers();
+</script>
+{% endblock %}

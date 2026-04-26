@@ -1,0 +1,49 @@
+from fastapi import Depends, HTTPException, Request, status
+import jwt
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from core.config import settings as s
+from database.config import get_async_session
+from database.exceptions import ObjectNotFound
+from auth.exceptions import InvalidCredentialsError
+from auth.tokens import tokens
+from users.service import users_service
+from users.schemas import UserReadSchema
+
+
+async def get_current_user(request: Request, session: AsyncSession = Depends(get_async_session)) -> UserReadSchema:
+    """Зависимость, подставляющая текущего пользователя."""
+    raw_token = _extract_access_token(request)
+
+    try:
+        payload = tokens.decode_token(raw_token)
+    except InvalidCredentialsError as e:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, str(e))
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, s.MESSAGE_ACCESS_TOKEN_IS_EXPIRED)
+    except jwt.InvalidTokenError:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, s.MESSAGE_WRONG_ACCESS_TOKEN)
+
+    try:
+        user_id = int(payload['sub'])
+    except (KeyError, ValueError, TypeError):
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, s.MESSAGE_WRONG_ACCESS_TOKEN)
+
+    try:
+        user: UserReadSchema = await users_service.get(session, user_id)
+    except ObjectNotFound as e:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, str(e))
+
+    return user
+
+
+def _extract_access_token(request: Request) -> str:
+    header = request.headers.get('authorization')
+    if header and header.lower().startswith('bearer '):
+        return header.split(' ', 1)[1].strip()
+
+    cookie_token = request.cookies.get('access_token')
+    if cookie_token:
+        return cookie_token
+
+    raise HTTPException(status.HTTP_401_UNAUTHORIZED, s.MESSAGE_ACCESS_TOKEN_IS_MISSING)

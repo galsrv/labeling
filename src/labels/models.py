@@ -2,7 +2,7 @@ from sqlalchemy import Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from core.config import settings as s
-from core.database import AppBaseClass
+from database.config import AppBaseClass
 
 
 class LabelTemplateORM(AppBaseClass):

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.database import get_async_session
+from database.config import get_async_session
 from workplaces.schemas import WorkplaceReadSchema
 from workplaces.service import workplaces_service
 

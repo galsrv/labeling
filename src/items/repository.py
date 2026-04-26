@@ -2,7 +2,7 @@ from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.base_repo import BaseRepository
+from database.repository import BaseRepository
 from items.models import ItemsOrm
 
 

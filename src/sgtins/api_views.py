@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, File, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import settings as s
-from core.database import get_async_session
+from database.config import get_async_session
 from core.dependencies import logging_dependency
 from frontend.responses import JsonToFrontendResponse
 

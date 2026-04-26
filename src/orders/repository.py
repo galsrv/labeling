@@ -1,4 +1,4 @@
-from core.base_repo import BaseRepository
+from database.repository import BaseRepository
 from orders.models import OrderOrm
 
 

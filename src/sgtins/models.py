@@ -5,7 +5,7 @@ from sqlalchemy import CheckConstraint, Computed, DateTime, Index, Integer, Stri
 from sqlalchemy.orm import Mapped, mapped_column
 
 from core.config import settings as s
-from core.database import AppBaseClass
+from database.config import AppBaseClass
 
 
 class SgtinStatus(StrEnum):

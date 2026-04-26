@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import settings as s
-from core.exceptions import ObjectNotFound
+from database.exceptions import ObjectNotFound
 from frontend.responses import JsonToFrontendResponse
 from labels.service import labels_service
 from sgtins.models import SgtinStatus

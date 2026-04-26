@@ -1,43 +1,44 @@
 from fastapi import FastAPI, Request, status
 from fastapi.exception_handlers import http_exception_handler, request_validation_exception_handler
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from core.log import logger
-from frontend.responses import not_found_response
+from core.config import settings as s, templates
+from auth.exceptions import BaseAuthException
+from database.exceptions import BaseDBException, ObjectNotFound
 
 
-class ObjectNotFound(Exception):
-    """Исключение - Объект не найден."""
-    pass
-
-
-class ObjectNotModified(Exception):
-    """Исключение - Объект не был изменен."""
-    pass
+def _html_not_found_response(request: Request) -> HTMLResponse:
+    """Возвращаем рендер шаблона 404."""
+    return templates.TemplateResponse(
+        request=request,
+        name='404.html',
+        status_code=status.HTTP_404_NOT_FOUND,
+    )
 
 
 def register_exception_handlers(app: FastAPI) -> None:
     """Регистрируем исключения для всех FastAPI-функций."""
 
-    @app.exception_handler(ObjectNotFound)
-    async def object_not_found_html(request: Request, exc: ObjectNotFound) -> JSONResponse | RedirectResponse:
-        """Возращаем JSON/HTML в зависимости от того, откуда был запрос к ненайденного объекту."""
-        logger.info(f'Ошибка обработки запроса к {request.url}: {str(exc)}')
+    @app.exception_handler(BaseDBException)
+    async def db_operation_failure(request: Request, exc: BaseDBException) -> JSONResponse | RedirectResponse:
+        """Обработчик исключений, возникших при операциях с БД.
 
-        if request.headers.get('accept', '').startswith('text/html'):
-            return not_found_response(request)
+        Возращаем JSON/HTML в зависимости от url в запросе web/api.
+        Для ошибок вида ObjectNotModified возвращаем JSON, обработка на стороне фронтенда, отдельного шаблона на это нет.
+        """
+        logger.info(s.MESSAGE_ERROR_PROCESSING_REQUEST(url=request.url, error=str(exc)))
 
-        return JSONResponse(
-            status_code=status.HTTP_404_NOT_FOUND,
-            content={'detail': str(exc)},
-        )
+        if isinstance(exc, ObjectNotFound):
+            if request.url.path.startswith(s.HTML_URL_PREFIX):
+                return _html_not_found_response(request)
 
-    @app.exception_handler(ObjectNotModified)
-    async def object_not_modified(request: Request, exc: ObjectNotFound) -> JSONResponse:
-        """Исключение для неуспешных операций изменения БД."""
-        logger.info(f'Ошибка обработки запроса к {request.url}: {str(exc)}')
+            return JSONResponse(
+                status_code=status.HTTP_404_NOT_FOUND,
+                content={'detail': str(exc)},
+            )
 
         return JSONResponse(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
@@ -46,24 +47,34 @@ def register_exception_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(StarletteHTTPException)
     async def custom_http_exception_handler(request: Request, exc: StarletteHTTPException) -> JSONResponse | RedirectResponse:
-        logger.info(f'Ошибка обработки запроса к {request.url}: {str(exc)}')
+        """Обработчик исключений, возниквших при попытке разобрать URL запроса - не нашелся роутер для пути."""
+        logger.info(s.MESSAGE_ERROR_PROCESSING_REQUEST(url=request.url, error=str(exc)))
 
-        # Кастомизируем поведение для ненайденных страниц для пользователей фронтенда
         if exc.status_code in (
             status.HTTP_404_NOT_FOUND, status.HTTP_422_UNPROCESSABLE_CONTENT
-        ) and request.url.path.startswith('/web'):
-            return not_found_response(request)
+        ) and request.url.path.startswith(s.HTML_URL_PREFIX):
+            return _html_not_found_response(request)
 
-        # Для пользователей API поведение оставляем дефолтное
+        # Для пользователей API оставляем дефолтное поведение FastAPI
         return await http_exception_handler(request, exc)
 
     @app.exception_handler(RequestValidationError)
     async def custom_validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
-        logger.info(f'Ошибка обработки запроса к {request.url}: {str(exc)}')
+        """Обработчик исключений, возниквших при конвертации путей - например /web/orders/abcde."""
+        logger.info(s.MESSAGE_ERROR_PROCESSING_REQUEST(url=request.url, error=str(exc)))
 
-        # Кастомизируем поведение для ошибок конвертации путей на фронтенде - например /web/orders/abcde
-        if request.url.path.startswith('/web'):
-            return not_found_response(request)
+        if request.url.path.startswith(s.HTML_URL_PREFIX):
+            return _html_not_found_response(request)
 
-        # Для пользователей API поведение оставляем дефолтное
+        # Для пользователей API оставляем дефолтное поведение FastAPI
         return await request_validation_exception_handler(request, exc)
+
+    @app.exception_handler(BaseAuthException)
+    async def invalid_credentials(request: Request, exc: BaseAuthException) -> JSONResponse:
+        """Обработчик исключений для неуспешной аутентификации пользователя."""
+        logger.info(s.MESSAGE_ERROR_PROCESSING_REQUEST(url=request.url, error=str(exc)))
+
+        return JSONResponse(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            content={'detail': str(exc)},
+        )

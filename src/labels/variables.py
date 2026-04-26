@@ -3,7 +3,7 @@ from typing import Type
 
 from sqlalchemy.inspection import inspect
 
-from core.database import TOrm
+from database.config import TOrm
 from items.models import ItemsOrm
 from sgtins.models import SgtinOrm
 

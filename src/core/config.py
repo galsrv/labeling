@@ -12,6 +12,13 @@ class Settings(BaseSettings):
 
     PROD_ENVIRONMENT: bool = False
 
+    JWT_SECRET: str
+    JWT_ALGORITM: str = 'HS256'
+    ACCESS_TOKEN_EXPIRES_MINUTES: int = 30
+    REFRESH_TOKEN_EXPIRES_DAYS: int = 30
+    REFRESH_TOKEN_ENTROPY_SIZE: int = 48
+    REFRESH_TOKEN_HASH_LENGTH: int = 255
+
     BACKEND_HOST: str = '127.0.0.1'
     BACKEND_PORT: int = 8000
 
@@ -48,6 +55,13 @@ class Settings(BaseSettings):
     LOG_FILE_MAX_SIZE: str = '1 MB'
 
     # Валидация объектов
+
+    USER_USERNAME_MAX_LENGTH: int = 15
+    USER_FIRST_NAME_MAX_LENGTH: int = 15
+    USER_LAST_NAME_MAX_LENGTH: int = 15
+    USER_PASSWORD_MAX_LENGTH: int = 255
+    USER_ROLE_NAME_MAX_LENGTH: int = 15
+    USER_PRIVILEGE_NAME_MAX_LENGTH: int = 15
 
     ITEM_NAME_MAX_LENGTH: int = 100
     ITEM_INGRIDIENTS_MAX_LENGTH: int = 255
@@ -92,11 +106,16 @@ class Settings(BaseSettings):
 
     # Сообщения пользователю
 
+    MESSAGE_INFO_ENDPOINT_CALL: str = 'Обращение {method}:{url}'
+    MESSAGE_ERROR_PROCESSING_REQUEST: str = 'Ошибка обработки запроса к {url}: {error}'
+
     MESSAGE_DB_OBJECT_GET: str = 'DB SELECT: модель {model}, id {obj_id}'
+    MESSAGE_DB_OBJECTS_GET_BY_FIELD: str = 'DB SELECT: модель {model}, критерий {field}={value}, результат {success}'
     MESSAGE_DB_OBJECT_GET_MULTI: str = 'DB SELECT: модель {model}, {number} записей отобрано'
     MESSAGE_DB_OBJECT_CREATE: str = 'DB INSERT: модель {model}, id {obj_id}'
     MESSAGE_DB_OBJECT_CREATE_MULTI: str = 'DB INSERT: модель {model}, {number} записей создано'
     MESSAGE_DB_OBJECT_CREATE_ERROR: str = 'DB INSERT ERROR: модель {model}, ошибка {error}'
+    MESSAGE_DB_OBJECT_MODIFICATION_ERROR: str = 'DB CREATE/DELETE ERROR: модель {model}, ошибка {error}'
     MESSAGE_DB_OBJECT_UPDATE: str = 'DB UPDATE: модель {model}, id {obj_id}'
     MESSAGE_DB_OBJECT_UPDATE_MULTI: str = 'DB UPDATE: модель {model}, {number} записей изменено'
     MESSAGE_DB_OBJECT_UPDATE_ERROR: str = 'DB UPDATE ERROR: модель {model}, ошибка {error}'
@@ -134,6 +153,13 @@ class Settings(BaseSettings):
     MESSAGE_ORDER_WRONG_PRODUCTION_DATE: str = 'Некорректная дата производства'
 
     MESSAGE_WRONG_WORKPLACE: str = 'Некорректно указано рабочее место'
+
+    MESSAGE_AUTHENTICATION_FAILED: str = 'Предоставлены некорректные данные для аутентификации'
+    MESSAGE_ACCESS_TOKEN_IS_MISSING: str = 'Не предоставлен токен аутентификации'
+    MESSAGE_ACCESS_TOKEN_IS_EXPIRED: str = 'Предоставленный токен аутентификации просрочен'
+    MESSAGE_WRONG_ACCESS_TOKEN: str = 'Предоставленный токен аутентификации неверен'
+    MESSAGE_REFRESH_TOKEN_NOT_FOUND: str = 'Предоставленный refresh токен не существует'
+    MESSAGE_REFRESH_TOKEN_IS_EXPIRED: str = 'Предоставленный refresh токен истек'
 
 
 settings = Settings()
