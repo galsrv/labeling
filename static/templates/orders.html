@@ -133,8 +133,8 @@
         </td>
         <td class="text-end text-nowrap">
           ${normalizeStatus(order.status) === 'CLOSED'
-            ? '<a class="btn btn-sm btn-outline-secondary disabled" aria-disabled="true">Запустить</a>'
-            : `<a href="${getOrderExecutionUrl(order.id)}" class="btn btn-sm btn-primary">Запустить</a>`}
+            ? '<a class="btn btn-sm btn-outline-secondary disabled" aria-disabled="true" data-requires-edit>Запустить</a>'
+            : `<a href="${getOrderExecutionUrl(order.id)}" class="btn btn-sm btn-primary" data-requires-edit>Запустить</a>`}
         </td>
       `;
       ordersTableBody.appendChild(row);

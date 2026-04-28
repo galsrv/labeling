@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Профиль{% endblock %}
+
+{% block content %}
+<div id="profileLoading" class="alert alert-secondary">Загрузка...</div>
+<div id="profileError" class="alert alert-danger d-none"></div>
+
+<div id="profileCard" class="card shadow-sm d-none">
+  <div class="card-header">
+    <div class="fw-semibold">Профиль пользователя</div>
+  </div>
+
+  <div class="card-body">
+    <dl class="row mb-0">
+      <dt class="col-sm-3">Юзернейм</dt>
+      <dd class="col-sm-9" id="usernameValue"></dd>
+
+      <dt class="col-sm-3">Имя</dt>
+      <dd class="col-sm-9" id="firstNameValue"></dd>
+
+      <dt class="col-sm-3">Фамилия</dt>
+      <dd class="col-sm-9" id="lastNameValue"></dd>
+    </dl>
+  </div>
+
+  <div class="card-footer bg-transparent d-flex justify-content-end">
+    <a href="{{ url_for('site_root') }}" class="btn btn-sm btn-outline-secondary">
+      Назад
+    </a>
+  </div>
+</div>
+
+<script>
+  const profileLoading = document.getElementById('profileLoading');
+  const profileError = document.getElementById('profileError');
+  const profileCard = document.getElementById('profileCard');
+  const usernameValue = document.getElementById('usernameValue');
+  const firstNameValue = document.getElementById('firstNameValue');
+  const lastNameValue = document.getElementById('lastNameValue');
+
+  function setVisible(element, isVisible) {
+    element.classList.toggle('d-none', !isVisible);
+  }
+
+  function showError(message) {
+    profileError.textContent = message;
+    setVisible(profileError, true);
+    setVisible(profileCard, false);
+    setVisible(profileLoading, false);
+  }
+
+  async function loadProfile() {
+    try {
+      const user = await window.authClient.fetchCurrentUser();
+
+      if (!user) {
+        showError('Пользователь не авторизован.');
+        return;
+      }
+
+      usernameValue.textContent = user.username || '—';
+      firstNameValue.textContent = user.first_name || '—';
+      lastNameValue.textContent = user.last_name || '—';
+
+      setVisible(profileLoading, false);
+      setVisible(profileCard, true);
+    } catch (_) {
+      showError('Не удалось загрузить профиль пользователя.');
+    }
+  }
+
+  loadProfile();
+</script>
+{% endblock %}

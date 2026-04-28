@@ -10,6 +10,8 @@
         integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN"
         crossorigin="anonymous"
     >
+    <link rel="icon" href="/static/favicon.ico?v=2" type="image/x-icon">
+
 
     <title>{% block title %}{% endblock %}</title>
     <style>
@@ -20,13 +22,33 @@
             box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.12);
             transform: translateY(-2px);
         }
+        body.auth-pending #pageContent {
+            display: none;
+        }
+        body.auth-pending [data-nav-permission],
+        body.auth-pending [data-nav-group] {
+            display: none !important;
+        }
+        body:not(.auth-can-edit) [data-requires-edit] {
+            display: none !important;
+        }
+        body:not(.auth-can-edit) [data-inline-edit-display] {
+            pointer-events: none;
+            cursor: default;
+        }
     </style>
 </head>
-<body>
+<body class="auth-pending">
 
 {% include "_navbar.html" %}
 
-<div class="container mt-4">
+<div id="authAccessDenied" class="container mt-4 d-none">
+    <div class="alert alert-danger">
+        Недостаточно прав для просмотра страницы.
+    </div>
+</div>
+
+<div class="container mt-4" id="pageContent">
     {% block content %}{% endblock %}
 </div>
 

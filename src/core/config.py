@@ -28,6 +28,8 @@ class Settings(BaseSettings):
     POSTGRES_DB_PORT: str
     POSTGRES_DB: str
 
+    SQL_ECHO: bool = False
+
     @property
     def DATABASE_URL(self) -> str:  # noqa: D102, N802
         return (
@@ -48,6 +50,9 @@ class Settings(BaseSettings):
     HTML_URL_PREFIX: str = '/web'
     WEBSOCKET_URL_PREFIX: str = '/ws'
 
+    STATIC_FILES_URL: str = '/static'
+    STATIC_FILES_DIR: str = '../static'
+
     WEB_TEMPLATE_DIR_PATH: str = '../static/templates'
 
     LOG_FILE_PATH: str = '../logs/log.txt'
@@ -62,6 +67,8 @@ class Settings(BaseSettings):
     USER_PASSWORD_MAX_LENGTH: int = 255
     USER_ROLE_NAME_MAX_LENGTH: int = 15
     USER_PRIVILEGE_NAME_MAX_LENGTH: int = 15
+
+    REFRESH_TOKEN_CLEANUP_JOB_DELAY_SECONDS: int = 5 * 60 * 60  # 5 часов
 
     ITEM_NAME_MAX_LENGTH: int = 100
     ITEM_INGRIDIENTS_MAX_LENGTH: int = 255
@@ -104,7 +111,9 @@ class Settings(BaseSettings):
     CONNECT_TO_DEVICE_ATTEMPTS: int = 3
     DEVICE_POLL_INTERVAL: float = 0.5
 
-    # Сообщения пользователю
+    # Сообщения пользователю и для логов
+
+    MESSAGE_APP_STARTED: str = 'Сервер FastAPI запущен на {host}:{port}'
 
     MESSAGE_INFO_ENDPOINT_CALL: str = 'Обращение {method}:{url}'
     MESSAGE_ERROR_PROCESSING_REQUEST: str = 'Ошибка обработки запроса к {url}: {error}'
@@ -121,6 +130,8 @@ class Settings(BaseSettings):
     MESSAGE_DB_OBJECT_UPDATE_ERROR: str = 'DB UPDATE ERROR: модель {model}, ошибка {error}'
     MESSAGE_DB_OBJECT_DOESNT_EXIST: str = 'DB NOT FOUND ERROR: модель {model}, id {obj_id}'
     MESSAGE_DB_OBJECT_DELETE: str = 'DB DELETE: модель {model}, id {obj_id}'
+    MESSAGE_DB_OBJECT_DELETE_ERROR: str = 'DB DELETE: модель {model}, ошибка {error}'
+    MESSAGE_DB_OBJECT_DELETE_MULTI: str = 'DB DELETE: модель {model}, {number} записей удалено'
     MESSAGE_DB_OBJECT_DELETE_ALL: str = 'DB DELETE ALL: модель {model}'
 
     MESSAGE_METHOD_NOT_IMPLEMENTED: str = 'Метод не реализован для данного драйвера'
@@ -160,6 +171,7 @@ class Settings(BaseSettings):
     MESSAGE_WRONG_ACCESS_TOKEN: str = 'Предоставленный токен аутентификации неверен'
     MESSAGE_REFRESH_TOKEN_NOT_FOUND: str = 'Предоставленный refresh токен не существует'
     MESSAGE_REFRESH_TOKEN_IS_EXPIRED: str = 'Предоставленный refresh токен истек'
+    MESSAGE_TOKEN_CLEANUP_TASK_CREATED: str = 'Создана фоновая задача по удалению просроченных токенов аутентификации'
 
 
 settings = Settings()

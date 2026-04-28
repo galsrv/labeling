@@ -31,8 +31,8 @@ class RefreshTokenRepository(BaseRepository):
         logger.debug(s.MESSAGE_DB_OBJECTS_GET_BY_FIELD.format(model=RefreshTokenORM.__name__, field=RefreshTokenORM.refresh_token_hash.label, value=refresh_token_hash, success=bool(db_obj)))
         return db_obj
 
-    async def create_new_and_delete_old_token(self, session: AsyncSession, old_token_id: int, new_token_dto: RefreshTokenCreateSchema) -> None:
-        """Метод удаления старого токена в БД и создания нового."""
+    async def rotate_tokens(self, session: AsyncSession, old_token_id: int, new_token_dto: RefreshTokenCreateSchema) -> None:
+        """Метод удаления старого токена и создания нового."""
         # Сначала удаляем существующий объет
         query = delete(RefreshTokenORM).where(RefreshTokenORM.id == old_token_id)
         result = await session.execute(query)

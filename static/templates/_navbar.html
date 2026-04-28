@@ -1,6 +1,6 @@
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <div class="container">
-        <a class="navbar-brand" href="{{ url_for('read_orders') }}">
+        <a class="navbar-brand" href="{{ url_for('site_root') }}">
             Маркировка
         </a>
 
@@ -18,19 +18,19 @@
 
         <div class="collapse navbar-collapse" id="mainNavbar">
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                <li class="nav-item">
+                <li class="nav-item" data-nav-permission="is_orders_view_permitted">
                     <a class="nav-link" href="{{ url_for('read_orders') }}">
                         Задания
                     </a>
                 </li>
 
-                <li class="nav-item">
+                <li class="nav-item" data-nav-permission="is_items_view_permitted">
                     <a class="nav-link" href="{{ url_for('web_get_all_items') }}">
                         Продукты
                     </a>
                 </li>
 
-                <li class="nav-item dropdown">
+                <li class="nav-item dropdown" data-nav-group>
                     <a
                         class="nav-link dropdown-toggle"
                         href="#"
@@ -41,12 +41,12 @@
                         Этикетки
                     </a>
                     <ul class="dropdown-menu">
-                        <li>
+                        <li data-nav-permission="is_labels_view_permitted">
                             <a class="dropdown-item" href="{{ url_for('web_get_all_labels') }}">
                                 Шаблоны
                             </a>
                         </li>
-                        <li>
+                        <li data-nav-permission="is_sgtins_view_permitted">
                             <a class="dropdown-item" href="{{ url_for('read_sgtins') }}">
                                 Коды маркировки
                             </a>
@@ -54,7 +54,7 @@
                     </ul>
                 </li>
 
-                <li class="nav-item dropdown">
+                <li class="nav-item dropdown" data-nav-group>
                     <a
                         class="nav-link dropdown-toggle"
                         href="#"
@@ -65,22 +65,22 @@
                         Обслуживание
                     </a>
                     <ul class="dropdown-menu">
-                        <li>
+                        <li data-nav-permission="is_workplaces_view_permitted">
                             <a class="dropdown-item" href="{{ url_for('web_get_all_workplaces') }}">
                                 Рабочие места
                             </a>
                         </li>
-                        <li>
+                        <li data-nav-permission="is_printers_view_permitted">
                             <a class="dropdown-item" href="{{ url_for('web_get_all_printers') }}">
                                 Принтеры
                             </a>
                         </li>
-                        <li>
+                        <li data-nav-permission="is_scales_view_permitted">
                             <a class="dropdown-item" href="{{ url_for('web_get_all_scales') }}">
                                 Весы
                             </a>
                         </li>
-                        <li>
+                        <li data-nav-permission="is_users_view_permitted">
                             <a class="dropdown-item" href="{{ url_for('web_get_all_users') }}">
                                 Пользователи
                             </a>
@@ -88,6 +88,320 @@
                     </ul>
                 </li>
             </ul>
+
+            <div class="d-flex align-items-center gap-2" id="navbarAuth">
+                <a
+                    id="navbarLoginLink"
+                    class="btn btn-sm btn-outline-light d-none"
+                    href="{{ url_for('web_user_login') }}"
+                >
+                    Вход
+                </a>
+
+                <a
+                    id="navbarUserLink"
+                    class="navbar-text text-light text-decoration-none d-none"
+                    href="{{ url_for('web_user_profile') }}"
+                ></a>
+
+                <button
+                    id="navbarLogoutBtn"
+                    type="button"
+                    class="btn btn-sm btn-outline-light d-none"
+                >
+                    Выход
+                </button>
+            </div>
         </div>
     </div>
 </nav>
+
+<script>
+  window.authClient = window.authClient || (() => {
+    const meApiUrl = '/api/v1/auth/me';
+    const refreshApiUrl = '/api/v1/auth/tokens_refresh';
+    const loginUrl = '{{ url_for("web_user_login") }}';
+    const loginPath = new URL(loginUrl, window.location.origin).pathname;
+    const publicPaths = new Set([loginPath]);
+    const pageRules = [
+      { prefix: '/web/auth/me', authenticated: true },
+      { prefix: '/web/items', view: 'is_items_view_permitted', edit: 'is_items_edit_permitted' },
+      { prefix: '/web/labels', view: 'is_labels_view_permitted', edit: 'is_labels_edit_permitted' },
+      { prefix: '/web/sgtins', view: 'is_sgtins_view_permitted', edit: 'is_sgtins_edit_permitted' },
+      { prefix: '/web/orders', view: 'is_orders_view_permitted', edit: 'is_orders_edit_permitted' },
+      { prefix: '/web/printers', view: 'is_printers_view_permitted', edit: 'is_printers_edit_permitted' },
+      { prefix: '/web/scales', view: 'is_scales_view_permitted', edit: 'is_scales_edit_permitted' },
+      { prefix: '/web/workplaces', view: 'is_workplaces_view_permitted', edit: 'is_workplaces_edit_permitted' },
+      { prefix: '/web/users', view: 'is_users_view_permitted', edit: 'is_users_edit_permitted' },
+      { prefix: '/web', authenticated: true },
+    ];
+    let currentUser = undefined;
+    let currentUserPromise = null;
+    let currentPageCanEdit = false;
+
+    function getCookie(name) {
+      const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const match = document.cookie.match(new RegExp(`(?:^|; )${escapedName}=([^;]*)`));
+      return match ? decodeURIComponent(match[1]) : null;
+    }
+
+    function setCookie(name, value) {
+      document.cookie = `${encodeURIComponent(name)}=${encodeURIComponent(value)}; path=/; SameSite=Lax`;
+    }
+
+    function deleteCookie(name) {
+      document.cookie = `${encodeURIComponent(name)}=; path=/; max-age=0; SameSite=Lax`;
+    }
+
+    function saveTokenPair(tokenPair) {
+      setCookie('access_token', tokenPair.access_token);
+      setCookie('refresh_token', tokenPair.refresh_token);
+      currentUser = undefined;
+      currentUserPromise = null;
+    }
+
+    function clearTokens() {
+      deleteCookie('access_token');
+      deleteCookie('refresh_token');
+      currentUser = null;
+      currentUserPromise = null;
+    }
+
+    async function refreshTokens() {
+      const refreshToken = getCookie('refresh_token');
+      if (!refreshToken) {
+        clearTokens();
+        return null;
+      }
+
+      const response = await fetch(refreshApiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          refresh_token: refreshToken,
+        }),
+      });
+
+      if (!response.ok) {
+        clearTokens();
+        return null;
+      }
+
+      const tokenPair = await response.json();
+      if (!tokenPair.access_token || !tokenPair.refresh_token) {
+        clearTokens();
+        return null;
+      }
+
+      saveTokenPair(tokenPair);
+      return tokenPair;
+    }
+
+    async function loadCurrentUser() {
+      if (!getCookie('access_token')) {
+        return null;
+      }
+
+      let response = await fetch(meApiUrl);
+
+      if (response.status === 401) {
+        const tokenPair = await refreshTokens();
+        if (!tokenPair) {
+          return null;
+        }
+        response = await fetch(meApiUrl);
+      }
+
+      if (!response.ok) {
+        return null;
+      }
+
+      return await response.json();
+    }
+
+    async function fetchCurrentUser(force = false) {
+      if (!force && currentUser !== undefined) {
+        return currentUser;
+      }
+
+      if (!force && currentUserPromise) {
+        return await currentUserPromise;
+      }
+
+      currentUserPromise = loadCurrentUser();
+
+      try {
+        currentUser = await currentUserPromise;
+        return currentUser;
+      } finally {
+        currentUserPromise = null;
+      }
+    }
+
+    function logout() {
+      clearTokens();
+      window.location.reload();
+    }
+
+    function hasPermission(user, permissionName) {
+      if (!permissionName) return true;
+      return Boolean(user?.role?.[permissionName]);
+    }
+
+    function getPageRule(pathname = window.location.pathname) {
+      return pageRules.find((rule) => pathname.startsWith(rule.prefix)) || null;
+    }
+
+    function isCreatePath(pathname = window.location.pathname) {
+      return pathname.endsWith('/create') || pathname.includes('/create/');
+    }
+
+    function canViewPath(user, pathname = window.location.pathname) {
+      if (publicPaths.has(pathname)) return true;
+
+      const rule = getPageRule(pathname);
+      if (!rule) return Boolean(user);
+      if (rule.authenticated) return Boolean(user);
+
+      return hasPermission(user, rule.view);
+    }
+
+    function canEditPath(user, pathname = window.location.pathname) {
+      const rule = getPageRule(pathname);
+      if (!rule || !rule.edit) return false;
+      return hasPermission(user, rule.edit);
+    }
+
+    function applyControlPermissions(user) {
+      currentPageCanEdit = canEditPath(user);
+      document.body.classList.toggle('auth-can-edit', currentPageCanEdit);
+
+      for (const element of document.querySelectorAll('[data-edit-control]')) {
+        element.disabled = !currentPageCanEdit;
+      }
+    }
+
+    function applyNavbarPermissions(user) {
+      for (const element of document.querySelectorAll('[data-nav-permission]')) {
+        element.classList.toggle('d-none', !hasPermission(user, element.dataset.navPermission));
+      }
+
+      for (const group of document.querySelectorAll('[data-nav-group]')) {
+        const visibleChildren = group.querySelectorAll('[data-nav-permission]:not(.d-none)');
+        group.classList.toggle('d-none', visibleChildren.length === 0);
+      }
+    }
+
+    function showPageContent() {
+      document.body.classList.remove('auth-pending');
+      document.getElementById('pageContent')?.classList.remove('d-none');
+      document.getElementById('authAccessDenied')?.classList.add('d-none');
+    }
+
+    function showAccessDenied() {
+      document.body.classList.remove('auth-pending');
+      document.getElementById('pageContent')?.classList.add('d-none');
+      document.getElementById('authAccessDenied')?.classList.remove('d-none');
+    }
+
+    function handlePageAccess(user) {
+      const pathname = window.location.pathname;
+      let isAllowed = true;
+
+      if (publicPaths.has(pathname)) {
+        showPageContent();
+        document.dispatchEvent(new CustomEvent('auth:ready', {
+          detail: { user, canEdit: currentPageCanEdit, isAllowed },
+        }));
+        return isAllowed;
+      }
+
+      if (!user) {
+        window.location.href = loginUrl;
+        return false;
+      }
+
+      applyControlPermissions(user);
+
+      if (isCreatePath(pathname) && !canEditPath(user, pathname)) {
+        isAllowed = false;
+        showAccessDenied();
+        document.dispatchEvent(new CustomEvent('auth:ready', {
+          detail: { user, canEdit: currentPageCanEdit, isAllowed },
+        }));
+        return isAllowed;
+      }
+
+      if (!canViewPath(user, pathname)) {
+        isAllowed = false;
+        showAccessDenied();
+        document.dispatchEvent(new CustomEvent('auth:ready', {
+          detail: { user, canEdit: currentPageCanEdit, isAllowed },
+        }));
+        return isAllowed;
+      }
+
+      showPageContent();
+      document.dispatchEvent(new CustomEvent('auth:ready', {
+        detail: { user, canEdit: currentPageCanEdit, isAllowed },
+      }));
+      return isAllowed;
+    }
+
+    return {
+      fetchCurrentUser,
+      logout,
+      saveTokenPair,
+      clearTokens,
+      getCookie,
+      hasPermission,
+      applyNavbarPermissions,
+      handlePageAccess,
+      canEditCurrentPage: () => currentPageCanEdit,
+    };
+  })();
+
+  (async () => {
+    const loginLink = document.getElementById('navbarLoginLink');
+    const userLink = document.getElementById('navbarUserLink');
+    const logoutBtn = document.getElementById('navbarLogoutBtn');
+
+    function setVisible(element, isVisible) {
+      if (!element) return;
+      element.classList.toggle('d-none', !isVisible);
+    }
+
+    function showUnauthorized() {
+      setVisible(loginLink, true);
+      setVisible(userLink, false);
+      setVisible(logoutBtn, false);
+    }
+
+    try {
+      const user = await window.authClient.fetchCurrentUser();
+      window.authClient.applyNavbarPermissions(user);
+
+      if (!user) {
+        showUnauthorized();
+        window.authClient.handlePageAccess(user);
+        return;
+      }
+
+      userLink.textContent = `${user.first_name ?? ''} ${user.last_name ?? ''}`.trim() || user.username;
+      setVisible(loginLink, false);
+      setVisible(userLink, true);
+      setVisible(logoutBtn, true);
+      window.authClient.handlePageAccess(user);
+    } catch (_) {
+      showUnauthorized();
+      window.authClient.applyNavbarPermissions(null);
+      window.authClient.handlePageAccess(null);
+    }
+
+    logoutBtn?.addEventListener('click', () => {
+      window.authClient.logout();
+    });
+  })();
+</script>

@@ -43,6 +43,7 @@
           {% if not is_create %}
             <span
               id="ipDisplay"
+              data-inline-edit-display
               role="button"
               title="Нажмите, чтобы изменить"
             ></span>
@@ -56,6 +57,7 @@
             value=""
             maxlength="64"
             required
+            data-edit-control
           >
           {% if not is_create %}
             <div id="ipHint" class="form-text d-none">
@@ -69,6 +71,7 @@
           {% if not is_create %}
             <span
               id="portDisplay"
+              data-inline-edit-display
               role="button"
               title="Нажмите, чтобы изменить"
             ></span>
@@ -83,6 +86,7 @@
             max="65535"
             value=""
             required
+            data-edit-control
           >
           {% if not is_create %}
             <div id="portHint" class="form-text d-none">
@@ -94,7 +98,7 @@
         <dt class="col-sm-3">Драйвер</dt>
         <dd class="col-sm-9">
           <div style="max-width: 22rem;">
-            <select class="form-select" name="driver_name" id="driverSelect" required></select>
+            <select class="form-select" name="driver_name" id="driverSelect" required data-edit-control></select>
           </div>
         </dd>
 
@@ -103,6 +107,7 @@
           {% if not is_create %}
             <span
               id="descriptionDisplay"
+              data-inline-edit-display
               role="button"
               title="Нажмите, чтобы изменить"
             ></span>
@@ -115,6 +120,7 @@
             type="text"
             value=""
             maxlength="255"
+            data-edit-control
           >
           {% if not is_create %}
             <div id="descriptionHint" class="form-text d-none">
@@ -126,7 +132,7 @@
     </div>
 
     <div class="card-footer bg-transparent d-flex justify-content-end gap-2">
-      <button type="submit" class="btn btn-sm btn-primary">Сохранить</button>
+      <button type="submit" class="btn btn-sm btn-primary" data-requires-edit>Сохранить</button>
 
       <a href="{{ url_for('web_get_all_scales') }}" class="btn btn-sm btn-outline-secondary">
         Назад
@@ -137,6 +143,7 @@
           type="submit"
           class="btn btn-sm btn-outline-danger"
           id="deleteScalesBtn"
+          data-requires-edit
           formmethod="post"
           formnovalidate
           onclick="return confirm('Удалить весы?');"
@@ -252,6 +259,7 @@
     const hint = document.getElementById(hintId);
 
     function openEdit() {
+      if (!document.body.classList.contains('auth-can-edit')) return;
       display.classList.add('d-none');
       input.classList.remove('d-none');
       hint.classList.remove('d-none');

@@ -7,5 +7,6 @@ from scales.models import ScalesOrm  # noqa
 from workplaces.models import WorkplaceOrm  # noqa
 from sgtins.models import SgtinOrm # noqa
 from users.models import RolesOrm, UsersOrm # noqa
+from auth.models import RefreshTokenORM  # noqa
 
 from core.config import settings # noqa

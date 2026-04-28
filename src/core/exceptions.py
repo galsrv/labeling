@@ -29,7 +29,7 @@ def register_exception_handlers(app: FastAPI) -> None:
         Возращаем JSON/HTML в зависимости от url в запросе web/api.
         Для ошибок вида ObjectNotModified возвращаем JSON, обработка на стороне фронтенда, отдельного шаблона на это нет.
         """
-        logger.info(s.MESSAGE_ERROR_PROCESSING_REQUEST(url=request.url, error=str(exc)))
+        logger.info(s.MESSAGE_ERROR_PROCESSING_REQUEST.format(url=str(request.url), error=str(exc)))
 
         if isinstance(exc, ObjectNotFound):
             if request.url.path.startswith(s.HTML_URL_PREFIX):
@@ -48,7 +48,11 @@ def register_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(StarletteHTTPException)
     async def custom_http_exception_handler(request: Request, exc: StarletteHTTPException) -> JSONResponse | RedirectResponse:
         """Обработчик исключений, возниквших при попытке разобрать URL запроса - не нашелся роутер для пути."""
-        logger.info(s.MESSAGE_ERROR_PROCESSING_REQUEST(url=request.url, error=str(exc)))
+        # Chrome что-то запрашивает и гадит в логах. Так убираем кастомный лог, остается только лог Uvicorn
+        if request.url.path == '/.well-known/appspecific/com.chrome.devtools.json':
+            return await http_exception_handler(request, exc)
+
+        logger.info(s.MESSAGE_ERROR_PROCESSING_REQUEST.format(url=str(request.url), error=str(exc)))
 
         if exc.status_code in (
             status.HTTP_404_NOT_FOUND, status.HTTP_422_UNPROCESSABLE_CONTENT
@@ -61,7 +65,7 @@ def register_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(RequestValidationError)
     async def custom_validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
         """Обработчик исключений, возниквших при конвертации путей - например /web/orders/abcde."""
-        logger.info(s.MESSAGE_ERROR_PROCESSING_REQUEST(url=request.url, error=str(exc)))
+        logger.info(s.MESSAGE_ERROR_PROCESSING_REQUEST.format(url=str(request.url), error=str(exc)))
 
         if request.url.path.startswith(s.HTML_URL_PREFIX):
             return _html_not_found_response(request)
@@ -72,7 +76,7 @@ def register_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(BaseAuthException)
     async def invalid_credentials(request: Request, exc: BaseAuthException) -> JSONResponse:
         """Обработчик исключений для неуспешной аутентификации пользователя."""
-        logger.info(s.MESSAGE_ERROR_PROCESSING_REQUEST(url=request.url, error=str(exc)))
+        logger.info(s.MESSAGE_ERROR_PROCESSING_REQUEST.format(url=str(request.url), error=str(exc)))
 
         return JSONResponse(
             status_code=status.HTTP_401_UNAUTHORIZED,

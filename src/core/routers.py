@@ -23,6 +23,7 @@ from sgtins.html_views import html_sgtin_router
 from orders.html_views import html_orders_router
 from workplaces.html_views import html_workplaces_router
 from users.html_views import html_users_router
+from auth.html_views import html_auth_router
 
 from scales.websocket_views import webscoket_scales_router
 
@@ -41,6 +42,7 @@ api_router.include_router(api_workplaces_router, prefix='/workplaces', tags=['wo
 
 html_router = APIRouter(prefix=s.HTML_URL_PREFIX)
 
+html_router.include_router(html_auth_router, prefix='/auth', tags=['html pages'])
 html_router.include_router(html_root_router, tags=['html pages'])
 html_router.include_router(html_items_router, prefix='/items', tags=['html pages'])
 html_router.include_router(html_orders_router, prefix='/orders', tags=['html pages'])

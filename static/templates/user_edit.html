@@ -36,13 +36,14 @@
             maxlength="15"
             {% if not is_create %}readonly{% endif %}
             required
+            data-edit-control
           >
         </dd>
 
         <dt class="col-sm-3">Имя</dt>
         <dd class="col-sm-9">
           {% if not is_create %}
-            <span id="firstNameDisplay" role="button" title="Нажмите, чтобы изменить"></span>
+            <span id="firstNameDisplay" role="button" title="Нажмите, чтобы изменить" data-inline-edit-display></span>
           {% endif %}
           <input
             id="firstNameInput"
@@ -50,6 +51,7 @@
             type="text"
             maxlength="15"
             required
+            data-edit-control
           >
           {% if not is_create %}
             <div id="firstNameHint" class="form-text d-none">
@@ -61,7 +63,7 @@
         <dt class="col-sm-3">Фамилия</dt>
         <dd class="col-sm-9">
           {% if not is_create %}
-            <span id="lastNameDisplay" role="button" title="Нажмите, чтобы изменить"></span>
+            <span id="lastNameDisplay" role="button" title="Нажмите, чтобы изменить" data-inline-edit-display></span>
           {% endif %}
           <input
             id="lastNameInput"
@@ -69,6 +71,7 @@
             type="text"
             maxlength="15"
             required
+            data-edit-control
           >
           {% if not is_create %}
             <div id="lastNameHint" class="form-text d-none">
@@ -80,13 +83,13 @@
         <dt class="col-sm-3">Активен</dt>
         <dd class="col-sm-9">
           <div class="form-check pt-1">
-            <input id="isActiveInput" class="form-check-input" type="checkbox" checked>
+            <input id="isActiveInput" class="form-check-input" type="checkbox" checked data-edit-control>
           </div>
         </dd>
 
         <dt class="col-sm-3">Роль</dt>
         <dd class="col-sm-9">
-          <select id="roleSelect" class="form-select" required>
+          <select id="roleSelect" class="form-select" required data-edit-control>
             <option value="">Выберите роль</option>
           </select>
         </dd>
@@ -99,6 +102,7 @@
             type="password"
             maxlength="255"
             {% if is_create %}required{% endif %}
+            data-edit-control
           >
         </dd>
 
@@ -110,6 +114,7 @@
             type="password"
             maxlength="255"
             {% if is_create %}required{% endif %}
+            data-edit-control
           >
           <div id="passwordError" class="form-text text-danger d-none"></div>
         </dd>
@@ -125,7 +130,7 @@
     </div>
 
     <div class="card-footer bg-transparent d-flex justify-content-end gap-2">
-      <button type="submit" class="btn btn-sm btn-primary">Сохранить</button>
+      <button type="submit" class="btn btn-sm btn-primary" data-requires-edit>Сохранить</button>
       <a href="{{ url_for('web_get_all_users') }}" class="btn btn-sm btn-outline-secondary">Назад</a>
     </div>
   </div>
@@ -280,6 +285,7 @@
     if (isCreate || !display || !input || !hint) return;
 
     function openEdit() {
+      if (!document.body.classList.contains('auth-can-edit')) return;
       display.classList.add('d-none');
       input.classList.remove('d-none');
       hint.classList.remove('d-none');
@@ -323,7 +329,7 @@
       roleSelect.appendChild(option);
     }
 
-    roleSelect.disabled = false;
+    roleSelect.disabled = !document.body.classList.contains('auth-can-edit');
     if (selectedRoleId != null) {
       currentRoleId = selectedRoleId;
     } else if (roles.length > 0) {
@@ -378,27 +384,20 @@
     return true;
   }
 
-  async function hashPassword(value) {
-    const bytes = new TextEncoder().encode(value);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', bytes);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map((byte) => byte.toString(16).padStart(2, '0')).join('');
-  }
-
-  function buildCreatePayload(passwordHash) {
+  function buildCreatePayload(password) {
     return {
       username: usernameInput.value.trim(),
       first_name: firstNameInput.value.trim(),
       last_name: lastNameInput.value.trim(),
       is_active: isActiveInput.checked,
       role_id: currentRoleId,
-      password_hash: passwordHash,
+      password: password,
       created_by_id: 1,
       updated_by_id: 1,
     };
   }
 
-  function buildUpdatePayload(passwordHash) {
+  function buildUpdatePayload(password) {
     const payload = {
       updated_by_id: 1,
     };
@@ -415,8 +414,8 @@
     if (currentRoleId != null && currentRoleId !== initialUser?.role?.id) {
       payload.role_id = currentRoleId;
     }
-    if (passwordHash) {
-      payload.password_hash = passwordHash;
+    if (password) {
+      payload.password = password;
     }
 
     return payload;
@@ -485,18 +484,9 @@
       return;
     }
 
-    let passwordHash = null;
-    if (password) {
-      passwordHash = await hashPassword(password);
-      if (passwordHash.length > 255) {
-        showError('Хэш пароля слишком длинный.');
-        return;
-      }
-    }
-
     const payload = isCreate
-      ? buildCreatePayload(passwordHash)
-      : buildUpdatePayload(passwordHash);
+      ? buildCreatePayload(password)
+      : buildUpdatePayload(password);
 
     try {
       const response = await fetch(

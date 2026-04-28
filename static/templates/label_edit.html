@@ -29,7 +29,7 @@
         <dt class="col-sm-3">Наименование</dt>
         <dd class="col-sm-9">
           {% if not is_create %}
-            <span id="nameDisplay" role="button" title="Нажмите, чтобы изменить"></span>
+            <span id="nameDisplay" role="button" title="Нажмите, чтобы изменить" data-inline-edit-display></span>
           {% endif %}
 
           <input
@@ -40,6 +40,7 @@
             value=""
             maxlength="255"
             required
+            data-edit-control
           >
           {% if not is_create %}
             <div id="nameHint" class="form-text d-none">
@@ -51,7 +52,7 @@
         <dt class="col-sm-3">Драйвер</dt>
         <dd class="col-sm-9">
           <div style="max-width: 22rem;">
-            <select class="form-select" name="driver_name" id="driverSelect" required></select>
+            <select class="form-select" name="driver_name" id="driverSelect" required data-edit-control></select>
           </div>
         </dd>
       </dl>
@@ -72,6 +73,7 @@
         class="form-control"
         rows="6"
         spellcheck="false"
+        data-edit-control
       ></textarea>
     </div>
 
@@ -102,7 +104,7 @@
     </div>
 
     <div class="card-footer bg-transparent d-flex justify-content-end gap-2">
-      <button type="submit" class="btn btn-sm btn-primary">Сохранить</button>
+      <button type="submit" class="btn btn-sm btn-primary" data-requires-edit>Сохранить</button>
 
       <a href="{{ url_for('web_get_all_labels') }}" class="btn btn-sm btn-outline-secondary">
         Назад
@@ -113,6 +115,7 @@
           type="submit"
           class="btn btn-sm btn-outline-danger"
           id="deleteLabelBtn"
+          data-requires-edit
           formmethod="post"
           formnovalidate
           onclick="return confirm('Удалить шаблон этикетки?');"
@@ -264,6 +267,7 @@
     if (isCreate || !nameDisplay || !nameInput || !nameHint) return;
 
     function openNameEdit() {
+      if (!document.body.classList.contains('auth-can-edit')) return;
       nameDisplay.classList.add('d-none');
       nameInput.classList.remove('d-none');
       nameHint.classList.remove('d-none');
@@ -351,7 +355,12 @@
 
   autoResize();
 
+  document.addEventListener('auth:ready', (event) => {
+    editor.setOption('readOnly', !event.detail.canEdit);
+  });
+
   function insertToken(token) {
+    if (!document.body.classList.contains('auth-can-edit')) return;
     editor.focus();
     editor.replaceSelection(token, 'around');
   }
@@ -363,6 +372,7 @@
       const button = document.createElement('button');
       button.type = 'button';
       button.className = `btn btn-sm ${buttonClass}`;
+      button.dataset.requiresEdit = '';
       button.title = `Вставить ${token}`;
       button.textContent = token;
       button.addEventListener('click', () => insertToken(token));

@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse
 
+from core.config import templates
 
 html_root_router = APIRouter()
 
@@ -13,7 +14,9 @@ html_root_router = APIRouter()
 )
 async def site_root(
     request: Request,
-) -> RedirectResponse:
-    """Переадресуем на страницу с производственными заданиями."""
-    url = request.url_for('read_orders')
-    return RedirectResponse(url=url)
+) -> HTMLResponse:
+    """Направляем на приветственную страницу."""
+    return templates.TemplateResponse(
+        request=request,
+        name='index.html',
+    )

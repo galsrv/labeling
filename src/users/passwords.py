@@ -12,7 +12,13 @@ class PasswordsHelper():
 
     def password_validation(self, password_provided: str, password_hash_stored: str) -> bool:
         """Валидация переданного пользователем пароля."""
-        return bcrypt.checkpw(password_provided.encode('utf-8'), password_hash_stored.encode('utf-8'))
+        try:
+            from loguru import logger
+            logger.debug(password_provided)
+            logger.debug(password_hash_stored)
+            return bcrypt.checkpw(password_provided.encode('utf-8'), password_hash_stored.encode('utf-8'))
+        except ValueError:
+            return False
 
 
 passwords = PasswordsHelper()
