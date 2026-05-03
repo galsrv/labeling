@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import settings as s
 from database.config import TOrm
-from database.exceptions import ObjectNotFound, ObjectNotModified
+from database.exceptions import ObjectNotFoundError, ObjectNotModifiedError
 
 
 class BaseRepository:
@@ -62,7 +62,7 @@ class BaseRepository:
         if db_obj is None:
             message = s.MESSAGE_DB_OBJECT_DOESNT_EXIST.format(model=self.model.__name__, obj_id=obj_id)
             logger.debug(message)
-            raise ObjectNotFound(message)
+            raise ObjectNotFoundError(message)
 
         logger.debug(s.MESSAGE_DB_OBJECT_GET.format(model=self.model.__name__, obj_id=obj_id))
 
@@ -82,7 +82,7 @@ class BaseRepository:
         except IntegrityError as e:
             await session.rollback()
             logger.debug(s.MESSAGE_DB_OBJECT_CREATE_ERROR.format(model=self.model.__name__, error=str(e)))
-            raise ObjectNotModified(str(e))
+            raise ObjectNotModifiedError(str(e))
 
     async def update(self, session: AsyncSession, obj_id: int, data_input: BaseModel) -> TOrm:
         """Метод изменения существующей записи таблицы, на вход поступает DTO."""
@@ -99,7 +99,7 @@ class BaseRepository:
                 await session.rollback()
                 message = s.MESSAGE_DB_OBJECT_DOESNT_EXIST.format(model=self.model.__name__, obj_id=obj_id)
                 logger.debug(message)
-                raise ObjectNotFound(message)
+                raise ObjectNotFoundError(message)
 
             await session.commit()
             logger.debug(s.MESSAGE_DB_OBJECT_UPDATE.format(model=self.model.__name__, obj_id=obj_id))
@@ -108,7 +108,7 @@ class BaseRepository:
         except IntegrityError as e:
             await session.rollback()
             logger.debug(s.MESSAGE_DB_OBJECT_UPDATE_ERROR.format(model=self.model.__name__, error=str(e)))
-            raise ObjectNotModified(str(e))
+            raise ObjectNotModifiedError(str(e))
 
     async def delete(self, session: AsyncSession, obj_id: int) -> None:
         """Удаляем запись из таблицы по ключу."""
@@ -119,7 +119,7 @@ class BaseRepository:
             await session.rollback()
             message = s.MESSAGE_DB_OBJECT_DOESNT_EXIST.format(model=self.model.__name__, obj_id=obj_id)
             logger.debug(message)
-            raise ObjectNotFound(message)
+            raise ObjectNotFoundError(message)
 
         await session.commit()
         logger.debug(s.MESSAGE_DB_OBJECT_DELETE.format(model=self.model.__name__, obj_id=obj_id))

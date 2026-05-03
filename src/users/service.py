@@ -1,20 +1,20 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.service import BaseService
-from users.repository import users_repo, roles_repo
+from users.passwords import passwords
+from users.repository import roles_repo, users_repo
 from users.schemas import (
+    RoleCreateSchema,
+    RoleReadSchema,
+    RoleUpdateSchema,
+    UserCreateSchema,
     UserPageSchema,
     UserReadSchema,
-    UserWithHashReadSchema,
-    UserCreateSchema,
     UserToSaveCreateSchema,
-    UserUpdateSchema,
     UserToSaveUpdateSchema,
-    RoleReadSchema,
-    RoleCreateSchema,
-    RoleUpdateSchema,
+    UserUpdateSchema,
+    UserWithHashReadSchema,
 )
-from users.passwords import passwords
 
 
 class RolesService(BaseService[RoleReadSchema, RoleCreateSchema, RoleUpdateSchema]):

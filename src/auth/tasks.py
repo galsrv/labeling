@@ -5,8 +5,8 @@ from loguru import logger
 from sqlalchemy import delete, or_
 from sqlalchemy.exc import SQLAlchemyError
 
-from core.config import settings as s
 from auth.models import RefreshTokenORM
+from core.config import settings as s
 from database.config import AsyncSessionLocal
 
 
@@ -19,7 +19,7 @@ async def cleanup_tokens_task() -> None:
                     or_(
                         RefreshTokenORM.user.has(is_active=False),
                         RefreshTokenORM.expires_at < datetime.now(timezone.utc),
-                    )
+                    ),
                 )
                 result = await session.execute(stmt)
                 await session.commit()

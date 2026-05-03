@@ -1,10 +1,8 @@
 from sqlalchemy import ForeignKey, Integer, String
-
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from core.config import settings as s
 from database.config import AppBaseClass
-
 from printers.models import PrinterOrm
 from scales.models import ScalesOrm
 

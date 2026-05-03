@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Cookie, Depends, Form, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from database.config import get_async_session
 from auth.dependencies import is_orders_view_permitted
-from core.dependencies import logging_dependency
 from core.config import settings as s
+from core.dependencies import logging_dependency
+from database.config import get_async_session
 from frontend.responses import JsonToFrontendResponse
 from orders.schemas import OrderPageSchema, OrderReadSchema
 from orders.service import orders_service
@@ -16,7 +16,7 @@ api_orders_router = APIRouter()
     '/',
     response_model=OrderPageSchema,
     summary='Получить список заказов на производство',
-    dependencies=[Depends(is_orders_view_permitted), Depends(logging_dependency)]
+    dependencies=[Depends(is_orders_view_permitted), Depends(logging_dependency)],
 )
 async def get_orders(
     session: AsyncSession = Depends(get_async_session),
@@ -37,11 +37,11 @@ async def get_orders(
     '/{order_id}',
     response_model=OrderReadSchema,
     summary='Получить заказ на производство',
-    dependencies=[Depends(is_orders_view_permitted), Depends(logging_dependency)]
+    dependencies=[Depends(is_orders_view_permitted), Depends(logging_dependency)],
 )
 async def get_order(
     order_id: int,
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_async_session),
 ) -> OrderReadSchema:
     """Эндпоинт получения заказа на производство."""
     order = await orders_service.get_order(session, order_id)
@@ -53,7 +53,7 @@ async def get_order(
         response_model=JsonToFrontendResponse,
         name='web_orders_sgtin_batch_print',
         summary='Пакетная печать кодов',
-        dependencies=[Depends(is_orders_view_permitted), Depends(logging_dependency)]
+        dependencies=[Depends(is_orders_view_permitted), Depends(logging_dependency)],
 )
 async def web_orders_sgtin_batch_print(
     order_id: int,

@@ -1,19 +1,20 @@
 import asyncio
 from typing import TypeVar
+
 from loguru import logger
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import settings as s
-from database.exceptions import ObjectNotFound
+from database.exceptions import ObjectNotFoundError
 from frontend.responses import JsonToFrontendResponse
 from labels.service import labels_service
+from orders.models import OrderStatus
+from orders.repository import orders_repo
+from orders.schemas import OrderPageSchema, OrderReadSchema, OrderUpdateSchema
 from sgtins.models import SgtinStatus
 from sgtins.schema import SgtinSchema
 from sgtins.service import sgtin_service
-from orders.models import OrderStatus
-from orders.repository import orders_repo
-from orders.schemas import OrderReadSchema, OrderUpdateSchema, OrderPageSchema
 from workplaces.schemas import WorkplaceReadSchema
 from workplaces.service import workplaces_service
 
@@ -65,9 +66,9 @@ class OrdersService:
             printer_dto = workplace_dto.printer1
 
             if printer_dto is None:
-                raise ObjectNotFound
+                raise ObjectNotFoundError
 
-        except (ValueError, ObjectNotFound):
+        except (ValueError, ObjectNotFoundError):
             return JsonToFrontendResponse(ok=False, message=s.MESSAGE_WRONG_WORKPLACE)
 
         # Проверяем, что введенное число этикеток не превышает установленный максимум

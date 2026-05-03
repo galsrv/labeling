@@ -1,5 +1,6 @@
 from ipaddress import IPv4Address
 from typing import Annotated
+
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field
 
 from core.config import settings as s

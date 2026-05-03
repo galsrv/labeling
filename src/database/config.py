@@ -26,7 +26,7 @@ TOrm = TypeVar("TOrm", bound=ORMBase)
 
 
 engine = create_async_engine(
-    url=s.DATABASE_URL, echo=s.SQL_ECHO
+    url=s.DATABASE_URL, echo=s.SQL_ECHO,
 )
 
 AsyncSessionLocal = async_sessionmaker(bind=engine, class_=AsyncSession)

@@ -1,11 +1,10 @@
 from fastapi import APIRouter, Depends, File, UploadFile
-
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.config import settings as s
 from auth.dependencies import is_sgtins_view_permitted
-from database.config import get_async_session
+from core.config import settings as s
 from core.dependencies import logging_dependency
+from database.config import get_async_session
 from frontend.responses import JsonToFrontendResponse
 from sgtins.service import sgtin_service
 
@@ -17,7 +16,7 @@ api_sgtin_router = APIRouter()
         response_model=JsonToFrontendResponse,
         name='web_sgtin_batch_insert',
         summary='Пакетный импорт кодов',
-        dependencies=[Depends(is_sgtins_view_permitted), Depends(logging_dependency)]
+        dependencies=[Depends(is_sgtins_view_permitted), Depends(logging_dependency)],
 )
 async def web_sgtin_batch_insert(
     file: UploadFile = File(),

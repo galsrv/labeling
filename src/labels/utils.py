@@ -11,7 +11,7 @@ INVALID_VAR_MSG = "Некорретная структура переменно�
 _VAR_PATTERN = re.compile(r"\{([^{}]+)\}")  # matches { ... } but not nested braces
 
 
-def _resolve_path(root: Any, path: str) -> tuple[bool, Any]:
+def _resolve_path(root: str, path: str) -> tuple[bool, Any]:
     """Resolve dotted attribute/key path on Pydantic models / dict-like objects.
 
     Returns (found, value).

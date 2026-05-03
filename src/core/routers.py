@@ -1,31 +1,27 @@
 from fastapi import APIRouter
 
-from core.config import settings as s
-
-from frontend.views import html_root_router
-
-from items.api_views import api_items_router
-from labels.api_views import api_labels_router
-from drivers.api_views import api_drivers_router
-from orders.api_views import api_orders_router
-from sgtins.api_views import api_sgtin_router
-from scales.api_views import api_scales_router
-from printers.api_views import api_printers_router
-from workplaces.api_views import api_workplaces_router
-from users.api_views import api_users_router
 from auth.api_views import api_auth_router
-
-from items.html_views import html_items_router
-from labels.html_views import html_labels_router
-from printers.html_views import html_printers_router
-from scales.html_views import html_scales_router
-from sgtins.html_views import html_sgtin_router
-from orders.html_views import html_orders_router
-from workplaces.html_views import html_workplaces_router
-from users.html_views import html_users_router
 from auth.html_views import html_auth_router
-
+from core.config import settings as s
+from drivers.api_views import api_drivers_router
+from frontend.views import html_root_router
+from items.api_views import api_items_router
+from items.html_views import html_items_router
+from labels.api_views import api_labels_router
+from labels.html_views import html_labels_router
+from orders.api_views import api_orders_router
+from orders.html_views import html_orders_router
+from printers.api_views import api_printers_router
+from printers.html_views import html_printers_router
+from scales.api_views import api_scales_router
+from scales.html_views import html_scales_router
 from scales.websocket_views import webscoket_scales_router
+from sgtins.api_views import api_sgtin_router
+from sgtins.html_views import html_sgtin_router
+from users.api_views import api_users_router
+from users.html_views import html_users_router
+from workplaces.api_views import api_workplaces_router
+from workplaces.html_views import html_workplaces_router
 
 api_router = APIRouter(prefix=s.API_URL_PREFIX)
 

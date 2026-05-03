@@ -20,7 +20,7 @@ def convert_raster_to_monochrome_bmp_bytes(
     """Convert PNG/JPEG/etc. to 1-bit monochrome BMP bytes for Datamax DPL.
 
     Args:
-        image_path: Path to a raster image.
+        image_bytes: The image itself.
         max_size_px: Max (width, height) in pixels; image is downscaled to fit.
         threshold: 0..255. Pixels >= threshold become white, otherwise black.
         fix_printer_orientation: If True, applies a transform to compensate for
@@ -83,7 +83,8 @@ def build_dpl_image_upload_commands(
       - .png/.jpg/.jpeg -> converted to 1-bit BMP internally
 
     Args:
-        image_path: Path to image file.
+        image_bytes: The image itself.
+        filename: Filename.
         module: Memory module designator (default: "G").
         image_name: Optional stored image name (<= 16 chars). Defaults to file stem.
         control_codes: 0=standard, 1=alternate, 2=alternate2.
@@ -122,7 +123,7 @@ def build_dpl_image_upload_commands(
     else:
         raise ValueError(
             "Unsupported image format. Use .png/.jpg/.jpeg/.bmp/.pcx/.img "
-            "(PNG/JPEG are converted to 1-bit BMP automatically)."
+            "(PNG/JPEG are converted to 1-bit BMP automatically).",
         )
 
     raw_name = image_name or Path(filename).stem

@@ -4,21 +4,14 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import settings as s
-
 from drivers.drivers import get_printer_driver
 from drivers.printers.printers_base import BasePrinterDriver
 from drivers.validators import DeviceResponse
-
-from items.service import items_service
-from items.schemas import ItemReadSchema
 from frontend.responses import JsonToFrontendResponse
+from items.schemas import ItemReadSchema
+from items.service import items_service
 from labels.repository import label_repo
-from labels.schemas import (
-    LabelTemplatesPageSchema,
-    PrintLabelTestPayload,
-    LabelTemplatesReadSchema,
-    LabelTemplatesCreateUpdateSchema
-)
+from labels.schemas import LabelTemplatesCreateUpdateSchema, LabelTemplatesPageSchema, LabelTemplatesReadSchema, PrintLabelTestPayload
 from labels.utils import build_print_command
 from printers.schemas import PrinterReadSchema
 from printers.service import printers_service

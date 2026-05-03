@@ -14,7 +14,7 @@ html_auth_router = APIRouter()
         response_class=HTMLResponse,
         summary='Аутентификация пользователя',
         name='web_user_login',
-        dependencies=[Depends(logging_dependency)]
+        dependencies=[Depends(logging_dependency)],
 )
 async def web_user_login(
     request: Request,
@@ -38,7 +38,7 @@ async def web_user_login(
         response_class=HTMLResponse,
         summary='Профайл пользователя',
         name='web_user_profile',
-        dependencies=[Depends(logging_dependency)]
+        dependencies=[Depends(logging_dependency)],
 )
 async def web_user_profile(
     request: Request,

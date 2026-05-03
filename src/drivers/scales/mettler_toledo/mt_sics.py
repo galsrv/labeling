@@ -1,5 +1,5 @@
-from drivers.scales.scales_base import BaseScalesDriver
 from drivers.scales.mettler_toledo.utils import decode_response
+from drivers.scales.scales_base import BaseScalesDriver
 from drivers.utils import read_fixed_length
 from drivers.validators import ScalesModes
 

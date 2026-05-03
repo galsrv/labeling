@@ -1,7 +1,6 @@
 from core.config import settings as s
-
 from drivers.base import BaseDeviceDriver
-from drivers.validators import ResponseTypes, DeviceResponse
+from drivers.validators import DeviceResponse, ResponseTypes
 
 
 class BasePrinterDriver(BaseDeviceDriver):

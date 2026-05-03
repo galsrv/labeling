@@ -1,8 +1,8 @@
 from datetime import date, timedelta
+
 from pydantic import BaseModel, ConfigDict, field_validator
 
 from core.config import settings as s
-
 from core.pagination import BasePageSchema
 from items.schemas import ItemReadSchema
 from orders.models import OrderStatus

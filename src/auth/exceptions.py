@@ -1,24 +1,24 @@
-class BaseAuthException(Exception):
+class BaseAuthError(Exception):
     """Базовый класс исключений модуля Аутентификация."""
 
 
-class InvalidCredentialsError(BaseAuthException):
+class InvalidCredentialsError(BaseAuthError):
     """Неверная пара логин/пароль либо пользователь неактивен."""
 
 
-class RefreshTokenNotFoundError(BaseAuthException):
+class RefreshTokenNotFoundError(BaseAuthError):
     """Рефреш токен не найден или отозван."""
 
 
-class RefreshTokenExpiredError(BaseAuthException):
+class RefreshTokenExpiredError(BaseAuthError):
     """Рефреш токен истёк."""
 
 
-class RefreshTokenCreationError(BaseAuthException):
+class RefreshTokenCreationError(BaseAuthError):
     """Ошибка создания токена."""
 
 
-class RefreshTokenDeletionError(BaseAuthException):
+class RefreshTokenDeletionError(BaseAuthError):
     """Ошибка удаления токена."""
 
 

@@ -5,19 +5,16 @@ from pydantic import BaseModel, ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import settings as s
-
 from drivers.drivers import scales_drivers
 from drivers.scales.scales_base import BaseScalesDriver
 from drivers.validators import DeviceResponse, ResponseTypes
-
-from frontend.websockets import ws_connection_manager
 from frontend.responses import JsonToFrontendResponse
-
+from frontend.websockets import ws_connection_manager
 from scales.repository import scales_repo
 from scales.schemas import (
+    ScalesCreateUpdateSchema,
     ScalesPageSchema,
     ScalesReadSchema,
-    ScalesCreateUpdateSchema,
     ScalesShortSchema,
 )
 

@@ -1,10 +1,10 @@
-class BaseDBException(Exception):
+class BaseDatabaseError(Exception):
     """Базовый класс исключений при операциях с БД."""
 
 
-class ObjectNotFound(BaseDBException):
+class ObjectNotFoundError(BaseDatabaseError):
     """Исключение - Объект не найден."""
 
 
-class ObjectNotModified(BaseDBException):
+class ObjectNotModifiedError(BaseDatabaseError):
     """Исключение - Объект не был изменен."""

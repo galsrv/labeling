@@ -2,10 +2,10 @@ from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from database.repository import BaseRepository
 from core.config import settings as s
-from database.exceptions import ObjectNotFound
-from users.models import UsersOrm, RolesOrm
+from database.exceptions import ObjectNotFoundError
+from database.repository import BaseRepository
+from users.models import RolesOrm, UsersOrm
 
 
 class RolesRepository(BaseRepository):
@@ -31,7 +31,7 @@ class UsersRepository(BaseRepository):
         if db_obj is None:
             message = s.MESSAGE_DB_OBJECTS_GET_BY_FIELD.format(model=UsersOrm.__name__, field='username', value=username, success=bool(db_obj))
             logger.debug(message)
-            raise ObjectNotFound(message)
+            raise ObjectNotFoundError(message)
 
         logger.debug(s.MESSAGE_DB_OBJECTS_GET_BY_FIELD.format(model=UsersOrm.__name__, field='username', value=username, success=bool(db_obj)))
         return db_obj

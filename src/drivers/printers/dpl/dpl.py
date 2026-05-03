@@ -1,7 +1,7 @@
-from drivers.printers.printers_base import BasePrinterDriver
 from drivers.printers.dpl.send_label import build_dpl_unicode_label
 from drivers.printers.dpl.upload_font import build_dpl_ttf_upload_commands
 from drivers.printers.dpl.upload_image import build_dpl_image_upload_commands
+from drivers.printers.printers_base import BasePrinterDriver
 
 PRINT_QUALITY_LABEL = '<STX>T<CR>'
 PRINT_CONFIGURATION_LABEL = '<STX>Z<CR>'

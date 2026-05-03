@@ -1,7 +1,7 @@
-from drivers.scales.scales_base import BaseScalesDriver
 from drivers.scales.digi.utils import decode_response
-from drivers.validators import ScalesModes
+from drivers.scales.scales_base import BaseScalesDriver
 from drivers.utils import read_until_crlf
+from drivers.validators import ScalesModes
 
 
 class DigiDi160(BaseScalesDriver):

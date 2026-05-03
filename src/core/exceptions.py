@@ -4,10 +4,11 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from auth.exceptions import BaseAuthError, NotAuthorizedError
+from core.config import settings as s
+from core.config import templates
 from core.log import logger
-from core.config import settings as s, templates
-from auth.exceptions import BaseAuthException, NotAuthorizedError
-from database.exceptions import BaseDBException, ObjectNotFound
+from database.exceptions import BaseDatabaseError, ObjectNotFoundError
 
 
 def _html_not_found_response(request: Request) -> HTMLResponse:
@@ -22,16 +23,16 @@ def _html_not_found_response(request: Request) -> HTMLResponse:
 def register_exception_handlers(app: FastAPI) -> None:  # noqa: C901
     """Регистрируем исключения для всех FastAPI-функций."""
 
-    @app.exception_handler(BaseDBException)
-    async def db_operation_failure(request: Request, exc: BaseDBException) -> JSONResponse | RedirectResponse:
+    @app.exception_handler(BaseDatabaseError)
+    async def db_operation_failure(request: Request, exc: BaseDatabaseError) -> JSONResponse | RedirectResponse:
         """Обработчик исключений, возникших при операциях с БД.
 
         Возращаем JSON/HTML в зависимости от url в запросе web/api.
-        Для ошибок вида ObjectNotModified возвращаем JSON, обработка на стороне фронтенда, отдельного шаблона на это нет.
+        Для ошибок вида ObjectNotModifiedError возвращаем JSON, обработка на стороне фронтенда, отдельного шаблона на это нет.
         """
         logger.info(s.MESSAGE_ERROR_PROCESSING_REQUEST.format(url=str(request.url), error=str(exc)))
 
-        if isinstance(exc, ObjectNotFound):
+        if isinstance(exc, ObjectNotFoundError):
             if request.url.path.startswith(s.HTML_URL_PREFIX):
                 return _html_not_found_response(request)
 
@@ -55,7 +56,7 @@ def register_exception_handlers(app: FastAPI) -> None:  # noqa: C901
         logger.info(s.MESSAGE_ERROR_PROCESSING_REQUEST.format(url=str(request.url), error=str(exc)))
 
         if exc.status_code in (
-            status.HTTP_404_NOT_FOUND, status.HTTP_422_UNPROCESSABLE_CONTENT
+            status.HTTP_404_NOT_FOUND, status.HTTP_422_UNPROCESSABLE_CONTENT,
         ) and request.url.path.startswith(s.HTML_URL_PREFIX):
             return _html_not_found_response(request)
 
@@ -83,8 +84,8 @@ def register_exception_handlers(app: FastAPI) -> None:  # noqa: C901
             content={'detail': str(exc)},
         )
 
-    @app.exception_handler(BaseAuthException)
-    async def invalid_credentials(request: Request, exc: BaseAuthException) -> JSONResponse:
+    @app.exception_handler(BaseAuthError)
+    async def invalid_credentials(request: Request, exc: BaseAuthError) -> JSONResponse:
         """Обработчик исключений для неуспешной аутентификации пользователя."""
         logger.info(s.MESSAGE_ERROR_PROCESSING_REQUEST.format(url=str(request.url), error=str(exc)))
 

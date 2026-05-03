@@ -2,13 +2,12 @@ from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from auth.schemas import RefreshTokenCreateSchema
-from database.exceptions import ObjectNotModified
-from database.repository import BaseRepository
-from core.config import settings as s
-from database.exceptions import ObjectNotFound
-from core.log import logger
 from auth.models import RefreshTokenORM
+from auth.schemas import RefreshTokenCreateSchema
+from core.config import settings as s
+from core.log import logger
+from database.exceptions import ObjectNotFoundError, ObjectNotModifiedError
+from database.repository import BaseRepository
 
 
 class RefreshTokenRepository(BaseRepository):
@@ -26,7 +25,7 @@ class RefreshTokenRepository(BaseRepository):
             message = s.MESSAGE_DB_OBJECTS_GET_BY_FIELD.format(
                 model=RefreshTokenORM.__name__, field='refresh_token_hash', value=refresh_token_hash, success=bool(db_obj))
             logger.debug(message)
-            raise ObjectNotFound(message)
+            raise ObjectNotFoundError(message)
 
         logger.debug(s.MESSAGE_DB_OBJECTS_GET_BY_FIELD.format(model=RefreshTokenORM.__name__, field='refresh_token_hash', value=refresh_token_hash, success=bool(db_obj)))
         return db_obj
@@ -41,7 +40,7 @@ class RefreshTokenRepository(BaseRepository):
             await session.rollback()
             message = s.MESSAGE_DB_OBJECT_DOESNT_EXIST.format(model=RefreshTokenORM.__name__, obj_id=old_token_id)
             logger.debug(message)
-            raise ObjectNotFound(message)
+            raise ObjectNotFoundError(message)
 
         # Далее создаем новый
         new_db_obj = self.model(**new_token_dto.model_dump())
@@ -57,7 +56,7 @@ class RefreshTokenRepository(BaseRepository):
             await session.rollback()
             logger.debug(s.MESSAGE_DB_OBJECT_MODIFICATION_ERROR.format(model=self.model.__name__, error=str(e)))
 
-            raise ObjectNotModified(str(e))
+            raise ObjectNotModifiedError(str(e))
 
 
 tokens_repo = RefreshTokenRepository()

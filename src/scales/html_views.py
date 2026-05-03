@@ -12,7 +12,7 @@ html_scales_router = APIRouter()
         response_class=HTMLResponse,
         summary='Список весов',
         name='web_get_all_scales',
-        dependencies=[Depends(logging_dependency)]
+        dependencies=[Depends(logging_dependency)],
 )
 async def web_get_all_scales(
     request: Request,
@@ -29,7 +29,7 @@ async def web_get_all_scales(
         response_class=HTMLResponse,
         name='web_create_scales_form',
         summary='Форма создания весов',
-        dependencies=[Depends(logging_dependency)]
+        dependencies=[Depends(logging_dependency)],
 )
 async def web_create_scales_form(
     request: Request,
@@ -38,7 +38,7 @@ async def web_create_scales_form(
     return templates.TemplateResponse(
         request=request,
         name='scales_edit.html',
-        context={'mode': 'create'}
+        context={'mode': 'create'},
     )
 
 
@@ -47,15 +47,15 @@ async def web_create_scales_form(
         response_class=HTMLResponse,
         name='web_update_scales_form',
         summary='Форма изменения весов',
-        dependencies=[Depends(logging_dependency)]
+        dependencies=[Depends(logging_dependency)],
 )
 async def web_update_scales_form(
     request: Request,
-    scales_id: int
+    scales_id: int,
 ) -> HTMLResponse:
     """Отображаем форму изменения весов."""
     return templates.TemplateResponse(
         request=request,
         name='scales_edit.html',
-        context={'mode': 'update'}
+        context={'mode': 'update'},
     )

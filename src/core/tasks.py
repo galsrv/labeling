@@ -4,9 +4,9 @@ from typing import AsyncGenerator
 
 from fastapi import FastAPI
 
+from auth.tasks import cleanup_tokens_task
 from core.config import settings as s
 from core.log import logger
-from auth.tasks import cleanup_tokens_task
 
 
 @asynccontextmanager

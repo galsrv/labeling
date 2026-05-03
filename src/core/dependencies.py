@@ -1,7 +1,7 @@
 from fastapi import Request
 
-from core.log import logger
 from core.config import settings as s
+from core.log import logger
 
 
 def logging_dependency(request: Request) -> None:

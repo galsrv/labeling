@@ -12,7 +12,7 @@ html_printers_router = APIRouter()
         response_class=HTMLResponse,
         summary='Список принтеров',
         name='web_get_all_printers',
-        dependencies=[Depends(logging_dependency)]
+        dependencies=[Depends(logging_dependency)],
 )
 async def web_get_all_printers(
     request: Request,
@@ -29,7 +29,7 @@ async def web_get_all_printers(
         response_class=HTMLResponse,
         name='web_create_printer_form',
         summary='Форма создания принтера',
-        dependencies=[Depends(logging_dependency)]
+        dependencies=[Depends(logging_dependency)],
 )
 async def web_create_printer_form(
     request: Request,
@@ -38,7 +38,7 @@ async def web_create_printer_form(
     return templates.TemplateResponse(
         request=request,
         name='printer_edit.html',
-        context={'mode': 'create'}
+        context={'mode': 'create'},
     )
 
 
@@ -47,15 +47,15 @@ async def web_create_printer_form(
         response_class=HTMLResponse,
         name='web_update_printer_form',
         summary='Форма изменения принтера',
-        dependencies=[Depends(logging_dependency)]
+        dependencies=[Depends(logging_dependency)],
 )
 async def web_update_printer_form(
     request: Request,
-    printer_id: int
+    printer_id: int,
 ) -> HTMLResponse:
     """Отображаем форму изменения данных принтера."""
     return templates.TemplateResponse(
         request=request,
         name='printer_edit.html',
-        context={'mode': 'update'}
+        context={'mode': 'update'},
     )

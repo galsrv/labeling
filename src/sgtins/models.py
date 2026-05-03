@@ -1,7 +1,8 @@
 from datetime import datetime
 from enum import StrEnum, auto
 
-from sqlalchemy import CheckConstraint, Computed, DateTime, Index, Integer, String, UniqueConstraint, func, Enum as SQLEnum, text
+from sqlalchemy import CheckConstraint, Computed, DateTime, Index, Integer, String, UniqueConstraint, func, text
+from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.orm import Mapped, mapped_column
 
 from core.config import settings as s

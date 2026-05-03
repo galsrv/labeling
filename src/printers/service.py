@@ -4,23 +4,12 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import settings as s
-
 from drivers.drivers import get_printer_driver
 from drivers.printers.printers_base import BasePrinterDriver
 from drivers.validators import DeviceResponse
-
 from frontend.responses import JsonToFrontendResponse
-
-from printers.schemas import (
-    PrinterPageSchema,
-    PrinterShortSchema,
-    PrinterReadSchema,
-    PrinterCreateUpdateSchema,
-    PrinterFontSchema,
-    PrinterImageSchema
-)
 from printers.repository import printers_repo
-
+from printers.schemas import PrinterCreateUpdateSchema, PrinterFontSchema, PrinterImageSchema, PrinterPageSchema, PrinterReadSchema, PrinterShortSchema
 
 T = TypeVar('T', bound=BaseModel)
 

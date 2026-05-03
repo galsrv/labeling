@@ -12,7 +12,7 @@ html_labels_router = APIRouter()
         response_class=HTMLResponse,
         summary='Список шаблонов этикеток',
         name='web_get_all_labels',
-        dependencies=[Depends(logging_dependency)]
+        dependencies=[Depends(logging_dependency)],
 )
 async def web_get_all_labels(
     request: Request,
@@ -29,7 +29,7 @@ async def web_get_all_labels(
         response_class=HTMLResponse,
         name='web_create_label_form',
         summary='Создание шаблона этикетки',
-        dependencies=[Depends(logging_dependency)]
+        dependencies=[Depends(logging_dependency)],
 )
 async def web_create_label_form(
     request: Request,
@@ -38,7 +38,7 @@ async def web_create_label_form(
     return templates.TemplateResponse(
         request=request,
         name='label_edit.html',
-        context={'mode': 'create'}
+        context={'mode': 'create'},
     )
 
 
@@ -47,7 +47,7 @@ async def web_create_label_form(
         response_class=HTMLResponse,
         name='web_update_label_form',
         summary='Шаблон этикетки',
-        dependencies=[Depends(logging_dependency)]
+        dependencies=[Depends(logging_dependency)],
 )
 async def web_update_label_form(
     label_id: int,
@@ -57,5 +57,5 @@ async def web_update_label_form(
     return templates.TemplateResponse(
         request=request,
         name='label_edit.html',
-        context={'mode': 'update'}
+        context={'mode': 'update'},
     )

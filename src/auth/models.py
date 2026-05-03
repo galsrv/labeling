@@ -3,8 +3,8 @@ from datetime import datetime
 from sqlalchemy import DateTime, ForeignKey, String, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from database.config import AppBaseClass
 from core.config import settings as s
+from database.config import AppBaseClass
 from users.models import UsersOrm
 
 

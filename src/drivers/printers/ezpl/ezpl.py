@@ -1,7 +1,7 @@
-from drivers.printers.printers_base import BasePrinterDriver
 from drivers.printers.ezpl.send_label import build_ezpl_label_command
 from drivers.printers.ezpl.upload_font import build_ezpl_ttf_upload_commands
 from drivers.printers.ezpl.upload_image import build_ezpl_image_upload_commands
+from drivers.printers.printers_base import BasePrinterDriver
 
 GET_CONFIGURATION = '^XGET,CONFIG'
 

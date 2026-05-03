@@ -3,7 +3,7 @@ import re
 from drivers.validators import ScalesResponse
 
 _MT_SICS_PATTERN = re.compile(
-    rb"^\s*([A-Z]{1,3})\s+([A-Z])\s+([+-]?\s*\d*\.?\d+)\s*([a-zA-Z]+)\s*$"
+    rb"^\s*([A-Z]{1,3})\s+([A-Z])\s+([+-]?\s*\d*\.?\d+)\s*([a-zA-Z]+)\s*$",
 )
 # Examples matched:
 # b"S S      2.168 kg"

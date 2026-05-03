@@ -12,7 +12,7 @@ html_items_router = APIRouter()
         response_class=HTMLResponse,
         summary='Список продуктов',
         name='web_get_all_items',
-        dependencies=[Depends(logging_dependency)]
+        dependencies=[Depends(logging_dependency)],
 )
 async def web_get_all_items(
     request: Request,

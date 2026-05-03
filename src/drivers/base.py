@@ -1,12 +1,11 @@
 import asyncio
 from typing import Awaitable, Callable
 
-from core.log import L, logger
 from core.config import settings as s
-
+from core.log import L, logger
 from drivers.connections import tcp_connection
-from drivers.validators import ResponseTypes, DeviceResponse, NotImplementedClass
 from drivers.utils import read_fixed_length
+from drivers.validators import DeviceResponse, NotImplementedClass, ResponseTypes
 
 
 class BaseDeviceDriver(NotImplementedClass):

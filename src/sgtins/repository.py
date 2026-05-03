@@ -18,7 +18,7 @@ class SgtinRepository(BaseRepository):
         """
         query = select(SgtinOrm).where(
             cast(SgtinOrm.gtin, BigInteger) == gtin,
-            SgtinOrm.status == SgtinStatus.ISSUED
+            SgtinOrm.status == SgtinStatus.ISSUED,
         ).order_by(SgtinOrm.created_at)
 
         gtins = await session.execute(query)

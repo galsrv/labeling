@@ -12,7 +12,7 @@ html_users_router = APIRouter()
         response_class=HTMLResponse,
         summary='Список пользователей',
         name='web_get_all_users',
-        dependencies=[Depends(logging_dependency)]
+        dependencies=[Depends(logging_dependency)],
 )
 async def web_get_all_users(
     request: Request,
@@ -29,7 +29,7 @@ async def web_get_all_users(
         response_class=HTMLResponse,
         name='web_create_user_form',
         summary='Форма создания пользователя',
-        dependencies=[Depends(logging_dependency)]
+        dependencies=[Depends(logging_dependency)],
 )
 async def web_create_user_form(
     request: Request,
@@ -38,7 +38,7 @@ async def web_create_user_form(
     return templates.TemplateResponse(
         request=request,
         name='user_edit.html',
-        context={'mode': 'create'}
+        context={'mode': 'create'},
     )
 
 
@@ -47,15 +47,15 @@ async def web_create_user_form(
         response_class=HTMLResponse,
         name='web_update_user_form',
         summary='Форма изменения пользователя',
-        dependencies=[Depends(logging_dependency)]
+        dependencies=[Depends(logging_dependency)],
 )
 async def web_update_user_form(
     request: Request,
-    user_id: int
+    user_id: int,
 ) -> HTMLResponse:
     """Отображаем форму изменения данных пользователя."""
     return templates.TemplateResponse(
         request=request,
         name='user_edit.html',
-        context={'mode': 'update'}
+        context={'mode': 'update'},
     )

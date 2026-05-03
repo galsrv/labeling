@@ -89,7 +89,7 @@ def build_dpl_unicode_label(data: str, control_codes: int = 0) -> bytes:  # noqa
                 output.extend(substitute_inline_tokens(raw))
             except UnicodeEncodeError as exc:
                 raise ValueError(
-                    f"Non-text record contains non-ASCII characters; keep barcodes ASCII-only: {raw!r}"
+                    f"Non-text record contains non-ASCII characters; keep barcodes ASCII-only: {raw!r}",
                 ) from exc
             output.append(cr_byte)
             continue
@@ -120,7 +120,7 @@ def build_dpl_unicode_label(data: str, control_codes: int = 0) -> bytes:  # noqa
         if "<FNC1>" in text_str or "<GS>" in text_str or "<ESC>" in text_str or "<STX>" in text_str or "<SOH>" in text_str:
             raise ValueError(
                 "Text record contains control tokens inside the Unicode text field. "
-                "Keep <FNC1>/<GS> for barcode data only."
+                "Keep <FNC1>/<GS> for barcode data only.",
             )
 
         output.extend(prefix_bytes)

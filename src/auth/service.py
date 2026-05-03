@@ -2,18 +2,18 @@ from datetime import datetime, timedelta, timezone
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.config import settings as s
-from database.exceptions import ObjectNotFound, ObjectNotModified
 from auth.exceptions import (
     InvalidCredentialsError,
+    RefreshTokenCreationError,
     RefreshTokenDeletionError,
     RefreshTokenExpiredError,
-    RefreshTokenCreationError,
     RefreshTokenNotFoundError,
 )
-from auth.schemas import LoginRequestSchema, RefreshRequestSchema, RefreshTokenReadSchema, TokenPairSchema, RefreshTokenCreateSchema
 from auth.repository import tokens_repo
+from auth.schemas import LoginRequestSchema, RefreshRequestSchema, RefreshTokenCreateSchema, RefreshTokenReadSchema, TokenPairSchema
 from auth.tokens import tokens
+from core.config import settings as s
+from database.exceptions import ObjectNotFoundError, ObjectNotModifiedError
 from users.schemas import UserReadSchema, UserWithHashReadSchema
 from users.service import users_service
 
@@ -25,7 +25,7 @@ class AuthService():
         """Проверка введенной пары юзернейм-пароль."""
         try:
             user: UserWithHashReadSchema = await users_service.get_by_username(session, data_input.username)
-        except ObjectNotFound:
+        except ObjectNotFoundError:
             raise InvalidCredentialsError(s.MESSAGE_AUTHENTICATION_FAILED)
 
         if not user.is_active or not users_service.password_validation(data_input.password, user.password_hash):
@@ -39,7 +39,7 @@ class AuthService():
 
         try:
             refresh_token = await tokens_repo.get_by_refresh_token(session, refresh_token_hash)
-        except ObjectNotFound:
+        except ObjectNotFoundError:
             raise RefreshTokenNotFoundError(s.MESSAGE_REFRESH_TOKEN_NOT_FOUND)
 
         refresh_token_dto = RefreshTokenReadSchema.model_validate(refresh_token)
@@ -70,7 +70,7 @@ class AuthService():
         """Сохранение refresh-токена пользователя в БД."""
         try:
             await tokens_repo.create(session, new_refresh_token_dto)
-        except ObjectNotModified as e:
+        except ObjectNotModifiedError as e:
             raise RefreshTokenCreationError(str(e))
 
     async def _rotate_refresh_tokens(self, session: AsyncSession, refresh_token_dto: RefreshTokenReadSchema) -> str:
@@ -79,9 +79,9 @@ class AuthService():
 
         try:
             await tokens_repo.rotate_tokens(session, refresh_token_dto.id, new_refresh_token_dto)
-        except ObjectNotFound as e:
+        except ObjectNotFoundError as e:
             raise RefreshTokenDeletionError(str(e))
-        except ObjectNotModified as e:
+        except ObjectNotModifiedError as e:
             raise RefreshTokenCreationError(str(e))
 
         return raw_token
@@ -116,7 +116,7 @@ class AuthService():
         try:
             token_dto = await tokens_repo.get_by_refresh_token(session, refresh_token_hash)
             await tokens_repo.delete(session, token_dto.id)
-        except ObjectNotFound:
+        except ObjectNotFoundError:
             pass
 
     async def refresh(self, session: AsyncSession, data_input: RefreshRequestSchema) -> TokenPairSchema:

@@ -1,14 +1,14 @@
-from fastapi import Depends, HTTPException, Request, status
 import jwt
+from fastapi import Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.config import settings as s
-from database.config import get_async_session
-from database.exceptions import ObjectNotFound
 from auth.exceptions import InvalidCredentialsError, NotAuthorizedError
 from auth.tokens import tokens
-from users.service import users_service
+from core.config import settings as s
+from database.config import get_async_session
+from database.exceptions import ObjectNotFoundError
 from users.schemas import UserReadSchema
+from users.service import users_service
 
 
 def _extract_access_token(request: Request) -> str:
@@ -43,7 +43,7 @@ async def get_current_user(request: Request, session: AsyncSession = Depends(get
 
     try:
         user: UserReadSchema = await users_service.get(session, user_id)
-    except ObjectNotFound as e:
+    except ObjectNotFoundError as e:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, str(e))
 
     if not user.is_active:

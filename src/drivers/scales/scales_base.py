@@ -1,9 +1,8 @@
 import asyncio
 from typing import AsyncIterator
 
-from core.log import logger
 from core.config import settings as s
-
+from core.log import logger
 from drivers.base import BaseDeviceDriver
 from drivers.utils import read_fixed_length
 from drivers.validators import DeviceResponse, ResponseTypes, ScalesModes, ScalesResponse

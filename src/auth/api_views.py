@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from database.config import get_async_session
-from core.config import settings as s
 from auth.dependencies import get_current_user
 from auth.schemas import LoginRequestSchema, RefreshRequestSchema, TokenPairSchema
 from auth.service import auth_service
+from core.config import settings as s
 from core.dependencies import logging_dependency
+from database.config import get_async_session
 from users.schemas import UserReadSchema
 
 api_auth_router = APIRouter()
@@ -43,7 +43,7 @@ def set_tokens_cookies_helper(response: Response, token_pair: TokenPairSchema) -
 async def login_user(
     data_input: LoginRequestSchema,
     response: Response,
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_async_session),
 ) -> TokenPairSchema:
     """Эндпоинт аутентификации пользователя."""
     token_pair = await auth_service.login(session, data_input)
@@ -61,7 +61,7 @@ async def logout_user(
     response: Response,
     data_input: RefreshRequestSchema | None = None,
     refresh_token_from_cookie: str | None = Cookie(default=None),
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_async_session),
 ) -> None:
     """Эндпоинт выхода из учетной записи пользователя."""
     refresh_token = (data_input.refresh_token if data_input else None) or refresh_token_from_cookie

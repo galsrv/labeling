@@ -3,7 +3,6 @@ from drivers.scales.tenzo_m.utils import decode_response
 from drivers.utils import read_fixed_length
 from drivers.validators import ScalesModes
 
-
 get_gross_weight_command = b'\xFF\x01\xC3\xE3\xFF\xFF'
 get_net_weight_command = b'\xFF\x01\xC2\x8A\xFF\xFF'
 set_tare_command = b'\xFF\x01\xC0\x58\xFF\xFF'

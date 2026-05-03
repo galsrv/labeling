@@ -1,9 +1,13 @@
 [project]
 name = "Labeling"
+authors = [
+  {name = "Aleksei Sukharev", email = "galsrv@gmail.com"},
+]
 version = "0.5.0"
 description = "Products labeling application"
 readme = "README.md"
 requires-python = ">=3.12"
+keywords = ["label", "printer", "barcode", "scales", "packaging"]
 dependencies = [
     "alembic>=1.18.4",
     "alembic-postgresql-enum>=1.10.0",
@@ -22,7 +26,7 @@ target-version = "py312"
 line-length = 200
 indent-width = 4
 preview = true
-exclude = ["src/alembic", "venv", "__pycache__", "migrations"]
+exclude = ["alembic", ".venv", "__pycache__"]
 
 [tool.ruff.lint]
 # Choose which rule families to check
@@ -32,14 +36,21 @@ select = [
 ]
 # Ignore selected rules
 ignore = [
-    "E265", "F811", "D100", "D104", "D105",
-    "D203", "D211", "D213", "N818", "ANN401", "W505", "COM812",
-    "ANN002",  # ignore missing *args annotation
-    "ANN003",  # ignore missing **kwargs annotation
+    "D100",    # Missing docstring in public module
     "RET504",  # unnecessary variable assignment before return
     "D107",    # Missing docstring in `__init__`
-    "I001",    # Ignore imports sorting
-    "A003",    # Ignore shadowind system vars like 'id;
+    "A003",    # Ignore shadowind system vars like 'id'
+    "ANN002",  # Missing type annotation for `*args`
+    "ANN003",  # Missing type annotation for `**kwargs`
+    # "I001",    # Ignore imports sorting
+    # "COM812",  # Trailing comma missing
+]
+
+# Per-file ignores
+[tool.ruff.lint.extend-per-file-ignores]
+"__init__.py" = [
+    "E401",   # multiple-imports-on-one-line
+    "E402"    # module-import-not-at-top-of-file
 ]
 
 # Optional: limit complexity
@@ -55,15 +66,11 @@ allow-star-arg-any = true
 quote-style = "single"
 line-ending = "lf"
 docstring-code-format = true
-docstring-code-line-length = 60
+docstring-code-line-length = 80
 
 # Sorting imports
 [tool.ruff.lint.isort]
 case-sensitive = true
-
-# Per-file ignores
-[tool.ruff.lint.extend-per-file-ignores]
-"__init__.py" = ["E401", "E402"]
 
 # Optional: documentation style
 [tool.ruff.lint.pydocstyle]

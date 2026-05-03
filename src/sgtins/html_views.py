@@ -1,10 +1,8 @@
 from fastapi import APIRouter, Depends, Request
-
 from fastapi.responses import HTMLResponse
 
-from core.dependencies import logging_dependency
 from core.config import templates
-
+from core.dependencies import logging_dependency
 
 html_sgtin_router = APIRouter()
 
@@ -14,7 +12,7 @@ html_sgtin_router = APIRouter()
         response_class=HTMLResponse,
         summary='Базовый интерфейс кодов маркировки',
         name='read_sgtins',
-        dependencies=[Depends(logging_dependency)]
+        dependencies=[Depends(logging_dependency)],
 )
 async def web_read_sgtins(
     request: Request,
@@ -22,5 +20,5 @@ async def web_read_sgtins(
     """Базовый интерфейс кодов маркировки."""
     return templates.TemplateResponse(
         request=request,
-        name='sgtins.html'
+        name='sgtins.html',
     )

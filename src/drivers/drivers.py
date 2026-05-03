@@ -1,14 +1,11 @@
 from core.config import settings as s
-
-from drivers.scales.scales_base import BaseScalesDriver
-from drivers.scales.digi.di160 import weight_service_digi_di160
-from drivers.scales.mettler_toledo.mt_sics import weight_service_mt_sics
-from drivers.scales.tenzo_m.tenso_m import weight_service_tenso_m
-
-from drivers.printers.printers_base import BasePrinterDriver
 from drivers.printers.dpl.dpl import printer_dpl_driver
 from drivers.printers.ezpl.ezpl import printer_ezpl_driver
-
+from drivers.printers.printers_base import BasePrinterDriver
+from drivers.scales.digi.di160 import weight_service_digi_di160
+from drivers.scales.mettler_toledo.mt_sics import weight_service_mt_sics
+from drivers.scales.scales_base import BaseScalesDriver
+from drivers.scales.tenzo_m.tenso_m import weight_service_tenso_m
 
 scales_drivers = {
     'tenzo_m': weight_service_tenso_m,

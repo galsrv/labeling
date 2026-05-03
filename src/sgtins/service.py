@@ -4,12 +4,10 @@ from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import settings as s
-
 from frontend.responses import JsonToFrontendResponse
-
 from sgtins.models import SgtinStatus
-from sgtins.schema import SgtinSchema, SgtinCreateSchema, SgtinUpdateSchema
 from sgtins.repository import sgtin_repo
+from sgtins.schema import SgtinCreateSchema, SgtinSchema, SgtinUpdateSchema
 from sgtins.utils import gtins_in_file_validation, load_marking_codes_from_file
 
 

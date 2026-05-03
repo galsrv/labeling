@@ -6,7 +6,7 @@ from fastapi.staticfiles import StaticFiles
 from core.config import settings as s
 from core.exceptions import register_exception_handlers
 from core.log import logger
-from core.routers import api_router, root_router, html_router, websocket_router
+from core.routers import api_router, html_router, root_router, websocket_router
 from core.tasks import lifespan_tasks
 
 fastapi_app = FastAPI(

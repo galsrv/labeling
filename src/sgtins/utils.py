@@ -6,9 +6,7 @@ from typing import Any
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import settings as s
-
 from items.service import items_service
-
 
 CODE_PARTS_PATTERN = re.compile(r'^01(?P<gtin>\d{14})21(?P<sgtin>.+?)\x1d93(?P<crypto_end>.+)$')
 

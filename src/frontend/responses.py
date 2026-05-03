@@ -1,6 +1,5 @@
 from pydantic import BaseModel
 
-
 from drivers.validators import ScalesResponse
 
 
