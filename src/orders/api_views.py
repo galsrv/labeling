@@ -1,10 +1,12 @@
-from fastapi import APIRouter, Cookie, Depends, Form
+from fastapi import APIRouter, Cookie, Depends, Form, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database.config import get_async_session
+from auth.dependencies import is_orders_view_permitted
 from core.dependencies import logging_dependency
+from core.config import settings as s
 from frontend.responses import JsonToFrontendResponse
-from orders.schemas import OrderReadSchema
+from orders.schemas import OrderPageSchema, OrderReadSchema
 from orders.service import orders_service
 
 api_orders_router = APIRouter()
@@ -12,21 +14,30 @@ api_orders_router = APIRouter()
 
 @api_orders_router.get(
     '/',
-    response_model=list[OrderReadSchema],
-    summary='Получить все заказы на производство'
+    response_model=OrderPageSchema,
+    summary='Получить список заказов на производство',
+    dependencies=[Depends(is_orders_view_permitted), Depends(logging_dependency)]
 )
 async def get_orders(
-    session: AsyncSession = Depends(get_async_session)
-) -> list[OrderReadSchema]:
-    """Эндпоинт получения всех заказов на производство."""
-    orders = await orders_service.list_orders(session)
+    session: AsyncSession = Depends(get_async_session),
+    page: int = Query(
+        ge=1,
+        default=1),
+    size: int = Query(
+        ge=s.PAGINATION_MIN_SIZE,
+        le=s.PAGINATION_MAX_SIZE,
+        default=s.PAGINATION_DEFAULT_PAGE_SIZE),
+) -> OrderPageSchema:
+    """Эндпоинт получения списка заказов на производство."""
+    orders = await orders_service.get_page(session, page, size)
     return orders
 
 
 @api_orders_router.get(
     '/{order_id}',
     response_model=OrderReadSchema,
-    summary='Получить заказ на производство'
+    summary='Получить заказ на производство',
+    dependencies=[Depends(is_orders_view_permitted), Depends(logging_dependency)]
 )
 async def get_order(
     order_id: int,
@@ -42,7 +53,7 @@ async def get_order(
         response_model=JsonToFrontendResponse,
         name='web_orders_sgtin_batch_print',
         summary='Пакетная печать кодов',
-        dependencies=[Depends(logging_dependency)]
+        dependencies=[Depends(is_orders_view_permitted), Depends(logging_dependency)]
 )
 async def web_orders_sgtin_batch_print(
     order_id: int,

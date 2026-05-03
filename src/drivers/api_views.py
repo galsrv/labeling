@@ -1,5 +1,7 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
+from auth.dependencies import is_scales_view_permitted, is_printers_view_permitted
+from core.dependencies import logging_dependency
 from drivers.drivers import scales_drivers, printer_drivers
 
 api_drivers_router = APIRouter()
@@ -8,7 +10,8 @@ api_drivers_router = APIRouter()
 @api_drivers_router.get(
     '/scales',
     response_model=list[str],
-    summary='Получить все драйверы весов'
+    summary='Получить все драйверы весов',
+    dependencies=[Depends(is_scales_view_permitted), Depends(logging_dependency)]
 )
 async def get_all_scales_drivers(
 ) -> list[str]:
@@ -20,7 +23,8 @@ async def get_all_scales_drivers(
 @api_drivers_router.get(
     '/printers',
     response_model=list[str],
-    summary='Получить все драйверы принтеров'
+    summary='Получить все драйверы принтеров',
+    dependencies=[Depends(is_printers_view_permitted), Depends(logging_dependency)]
 )
 async def get_all_printers_drivers(
 ) -> list[str]:

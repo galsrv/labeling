@@ -167,3 +167,4 @@ cython_debug/
 # Project-related
 .ruff_cache/
 logs/
+.codex

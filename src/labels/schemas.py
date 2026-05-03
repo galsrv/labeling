@@ -2,6 +2,7 @@ from typing import Annotated
 
 from pydantic import AfterValidator, BaseModel, ConfigDict
 
+from core.pagination import BasePageSchema
 from drivers.drivers import printer_driver_name_validator
 
 
@@ -13,6 +14,11 @@ class LabelTemplatesReadSchema(BaseModel):
     print_command: str
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class LabelTemplatesPageSchema(BasePageSchema):
+    """Модель выдачи страницы данных."""
+    items: list[LabelTemplatesReadSchema]
 
 
 class LabelTemplatesCreateUpdateSchema(BaseModel):

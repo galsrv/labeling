@@ -13,7 +13,7 @@ from sgtins.schema import SgtinSchema
 from sgtins.service import sgtin_service
 from orders.models import OrderStatus
 from orders.repository import orders_repo
-from orders.schemas import OrderReadSchema, OrderUpdateSchema
+from orders.schemas import OrderReadSchema, OrderUpdateSchema, OrderPageSchema
 from workplaces.schemas import WorkplaceReadSchema
 from workplaces.service import workplaces_service
 
@@ -22,11 +22,22 @@ T = TypeVar('T', bound=BaseModel)
 
 class OrdersService:
     """Сервисный слой для производственный заданий."""
-    async def list_orders(self, session: AsyncSession) -> list[OrderReadSchema]:
-        """Возвращаем все задания."""
-        orders = await orders_repo.get_all(session)
-        orders_dto = [OrderReadSchema.model_validate(order) for order in orders]
-        return orders_dto
+    async def get_page(self,
+            session: AsyncSession,
+            page: int,
+            size: int,
+        ) -> OrderPageSchema:
+        """Возвращаем страницу списка заданий на производство."""
+        items, page, pages, size, total = await orders_repo.get_page(session, page, size)
+
+        orders_page_dto = OrderPageSchema(
+            items=[OrderReadSchema.model_validate(item) for item in items],
+            page=page,
+            pages=pages,
+            size=size,
+            total=total,
+        )
+        return orders_page_dto
 
     async def get_order(self, session: AsyncSession, order_id: int) -> OrderReadSchema:
         """Возвращаем задание по его id."""

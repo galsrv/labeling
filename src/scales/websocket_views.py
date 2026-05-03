@@ -13,7 +13,10 @@ async def websocket_get_weight_stream(
     scales_id: int,
     websocket: WebSocket,
 ) -> None:
-    """Получаем вес с весов в потоке для вывода в интерфейсе."""
+    """Получаем вес с весов в потоке для вывода в интерфейсе.
+
+    Стоит добавить проверку полномочий.
+    """
     ip = websocket.query_params.get('ip')
     port = websocket.query_params.get('port')
     driver_name = websocket.query_params.get('driver_name')

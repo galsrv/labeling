@@ -117,9 +117,50 @@
 </nav>
 
 <script>
+  window.apiClient = window.apiClient || (() => {
+    async function parseError(response, fallbackMessage) {
+      try {
+        const data = await response.json();
+        if (data && typeof data === 'object') {
+          if (typeof data.detail === 'string') {
+            return data.detail;
+          }
+          if (Array.isArray(data.detail) && data.detail.length > 0) {
+            const first = data.detail[0];
+            if (first && typeof first.msg === 'string') {
+              return first.msg;
+            }
+          }
+          if (typeof data.message === 'string') {
+            return data.message;
+          }
+        }
+      } catch (_) {
+        // ignore parsing error
+      }
+
+      if (response.status === 403) {
+        return 'Недостаточно полномочий на выполнение операции';
+      }
+
+      return fallbackMessage;
+    }
+
+    async function errorFromResponse(response, fallbackMessage) {
+      const message = await parseError(response, fallbackMessage);
+      const error = new Error(message);
+      error.status = response.status;
+      return error;
+    }
+
+    return { parseError, errorFromResponse };
+  })();
+
   window.authClient = window.authClient || (() => {
+    const nativeFetch = window.fetch.bind(window);
     const meApiUrl = '/api/v1/auth/me';
     const refreshApiUrl = '/api/v1/auth/tokens_refresh';
+    const logoutApiUrl = '/api/v1/auth/logout';
     const loginUrl = '{{ url_for("web_user_login") }}';
     const loginPath = new URL(loginUrl, window.location.origin).pathname;
     const publicPaths = new Set([loginPath]);
@@ -137,30 +178,15 @@
     ];
     let currentUser = undefined;
     let currentUserPromise = null;
+    let refreshPromise = null;
     let currentPageCanEdit = false;
-
-    function getCookie(name) {
-      const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const match = document.cookie.match(new RegExp(`(?:^|; )${escapedName}=([^;]*)`));
-      return match ? decodeURIComponent(match[1]) : null;
-    }
-
-    function setCookie(name, value) {
-      document.cookie = `${encodeURIComponent(name)}=${encodeURIComponent(value)}; path=/; SameSite=Lax`;
-    }
 
     function deleteCookie(name) {
       document.cookie = `${encodeURIComponent(name)}=; path=/; max-age=0; SameSite=Lax`;
     }
 
-    function saveTokenPair(tokenPair) {
-      setCookie('access_token', tokenPair.access_token);
-      setCookie('refresh_token', tokenPair.refresh_token);
-      currentUser = undefined;
-      currentUserPromise = null;
-    }
-
     function clearTokens() {
+      // Removes old JS-readable cookies left from the pre-HttpOnly implementation.
       deleteCookie('access_token');
       deleteCookie('refresh_token');
       currentUser = null;
@@ -168,50 +194,45 @@
     }
 
     async function refreshTokens() {
-      const refreshToken = getCookie('refresh_token');
-      if (!refreshToken) {
-        clearTokens();
-        return null;
+      if (refreshPromise) {
+        return await refreshPromise;
       }
 
-      const response = await fetch(refreshApiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          refresh_token: refreshToken,
-        }),
-      });
+      refreshPromise = (async () => {
+        const response = await nativeFetch(refreshApiUrl, {
+          method: 'POST',
+          credentials: 'same-origin',
+        });
 
-      if (!response.ok) {
-        clearTokens();
-        return null;
+        if (!response.ok) {
+          clearTokens();
+          return false;
+        }
+
+        currentUser = undefined;
+        return true;
+      })();
+
+      try {
+        return await refreshPromise;
+      } finally {
+        refreshPromise = null;
       }
-
-      const tokenPair = await response.json();
-      if (!tokenPair.access_token || !tokenPair.refresh_token) {
-        clearTokens();
-        return null;
-      }
-
-      saveTokenPair(tokenPair);
-      return tokenPair;
     }
 
     async function loadCurrentUser() {
-      if (!getCookie('access_token')) {
-        return null;
-      }
-
-      let response = await fetch(meApiUrl);
+      let response = await nativeFetch(meApiUrl, {
+        credentials: 'same-origin',
+      });
 
       if (response.status === 401) {
-        const tokenPair = await refreshTokens();
-        if (!tokenPair) {
+        const refreshed = await refreshTokens();
+        if (!refreshed) {
           return null;
         }
-        response = await fetch(meApiUrl);
+        response = await nativeFetch(meApiUrl, {
+          credentials: 'same-origin',
+        });
       }
 
       if (!response.ok) {
@@ -240,9 +261,40 @@
       }
     }
 
-    function logout() {
-      clearTokens();
-      window.location.reload();
+    async function logout() {
+      try {
+        await nativeFetch(logoutApiUrl, {
+          method: 'POST',
+          credentials: 'same-origin',
+        });
+      } finally {
+        clearTokens();
+        window.location.reload();
+      }
+    }
+
+    function shouldRetryAfterRefresh(input) {
+      const url = new URL(typeof input === 'string' ? input : input.url, window.location.origin);
+      return (
+        url.origin === window.location.origin
+        && url.pathname.startsWith('/api/v1/')
+        && !url.pathname.startsWith('/api/v1/auth/')
+      );
+    }
+
+    async function authFetch(input, init) {
+      const response = await nativeFetch(input, init);
+
+      if (response.status !== 401 || !shouldRetryAfterRefresh(input)) {
+        return response;
+      }
+
+      const refreshed = await refreshTokens();
+      if (!refreshed) {
+        return response;
+      }
+
+      return await nativeFetch(input, init);
     }
 
     function hasPermission(user, permissionName) {
@@ -352,16 +404,17 @@
 
     return {
       fetchCurrentUser,
+      authFetch,
       logout,
-      saveTokenPair,
       clearTokens,
-      getCookie,
       hasPermission,
       applyNavbarPermissions,
       handlePageAccess,
       canEditCurrentPage: () => currentPageCanEdit,
     };
   })();
+
+  window.fetch = window.authClient.authFetch;
 
   (async () => {
     const loginLink = document.getElementById('navbarLoginLink');

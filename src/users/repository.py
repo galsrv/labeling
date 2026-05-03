@@ -29,11 +29,11 @@ class UsersRepository(BaseRepository):
         db_obj = db_obj.scalars().first()
 
         if db_obj is None:
-            message = s.MESSAGE_DB_OBJECTS_GET_BY_FIELD.format(model=UsersOrm.__name__, field=UsersOrm.username.label, value=username, success=bool(db_obj))
+            message = s.MESSAGE_DB_OBJECTS_GET_BY_FIELD.format(model=UsersOrm.__name__, field='username', value=username, success=bool(db_obj))
             logger.debug(message)
             raise ObjectNotFound(message)
 
-        logger.debug(s.MESSAGE_DB_OBJECTS_GET_BY_FIELD.format(model=UsersOrm.__name__, field=UsersOrm.username.label, value=username, success=bool(db_obj)))
+        logger.debug(s.MESSAGE_DB_OBJECTS_GET_BY_FIELD.format(model=UsersOrm.__name__, field='username', value=username, success=bool(db_obj)))
         return db_obj
 
 

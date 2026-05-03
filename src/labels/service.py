@@ -14,6 +14,7 @@ from items.schemas import ItemReadSchema
 from frontend.responses import JsonToFrontendResponse
 from labels.repository import label_repo
 from labels.schemas import (
+    LabelTemplatesPageSchema,
     PrintLabelTestPayload,
     LabelTemplatesReadSchema,
     LabelTemplatesCreateUpdateSchema
@@ -28,11 +29,23 @@ T = TypeVar('T', bound=BaseModel)
 class LabelTemplatesService:
     """Сервисный слой для шаблонов этикеток."""
 
-    async def get_all(self, session: AsyncSession) -> list[T]:
-        """Возвращаем из БД все шаблоны этикеток."""
-        labels = await label_repo.get_all(session)
-        labels_dto = [LabelTemplatesReadSchema.model_validate(label) for label in labels]
-        return labels_dto
+    async def get_page(
+            self,
+            session: AsyncSession,
+            page: int,
+            size: int,
+        ) -> LabelTemplatesPageSchema:
+        """Возвращаем из БД страницу списка шаблонов этикеток."""
+        items, page, pages, size, total = await label_repo.get_page(session, page, size)
+
+        labels_page_dto = LabelTemplatesPageSchema(
+            items=[LabelTemplatesReadSchema.model_validate(item) for item in items],
+            page=page,
+            pages=pages,
+            size=size,
+            total=total,
+        )
+        return labels_page_dto
 
     async def get(self, session: AsyncSession, label_id: int) -> T:
         """Возвращаем из БД шаблон этикетки по его id."""

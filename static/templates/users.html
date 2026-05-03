@@ -37,6 +37,10 @@
   </table>
 </div>
 
+<div id="usersPagination" class="mt-3 d-none"></div>
+
+{% include "_pagination.html" %}
+
 <script>
   const usersApiUrl = '/api/v1/users/';
   const userEditUrlTemplate = '{{ url_for("web_update_user_form", user_id=0) }}';
@@ -47,6 +51,11 @@
   const usersEmpty = document.getElementById('usersEmpty');
   const usersTableWrapper = document.getElementById('usersTableWrapper');
   const usersTableBody = document.getElementById('usersTableBody');
+  const usersPagination = document.getElementById('usersPagination');
+
+  const initialParams = new URLSearchParams(window.location.search);
+  let currentPage = Number(initialParams.get('page')) || 1;
+  let currentSize = Number(initialParams.get('size')) || null;
 
   function setVisible(element, isVisible) {
     element.classList.toggle('d-none', !isVisible);
@@ -59,6 +68,27 @@
       .replaceAll('>', '&gt;')
       .replaceAll('"', '&quot;')
       .replaceAll("'", '&#39;');
+  }
+
+  function buildUsersUrl(page, size) {
+    const params = new URLSearchParams({ page: String(page) });
+
+    if (size) {
+      params.set('size', String(size));
+    }
+
+    return `${usersApiUrl}?${params.toString()}`;
+  }
+
+  function updateBrowserUrl(page, size) {
+    const params = new URLSearchParams(window.location.search);
+    params.set('page', String(page));
+
+    if (size) {
+      params.set('size', String(size));
+    }
+
+    window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`);
   }
 
   function getUserEditUrl(userId) {
@@ -111,31 +141,44 @@
     }
   }
 
-  async function loadUsers() {
+  async function loadUsers(page = currentPage) {
     setVisible(usersLoading, true);
     setVisible(usersError, false);
     setVisible(usersEmpty, false);
     setVisible(usersTableWrapper, false);
+    setVisible(usersPagination, false);
 
     try {
-      const response = await fetch(usersApiUrl);
+      const response = await fetch(buildUsersUrl(page, currentSize));
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+        throw await window.apiClient.errorFromResponse(response, 'Не удалось загрузить список пользователей.');
       }
 
-      const users = await response.json();
+      const pageData = await response.json();
+      const users = Array.isArray(pageData.items) ? pageData.items : [];
+
+      if (pageData.pages > 0 && pageData.page > pageData.pages) {
+        await loadUsers(pageData.pages);
+        return;
+      }
+
+      currentPage = Number(pageData.page ?? page);
+      currentSize = Number(pageData.size ?? currentSize);
+      updateBrowserUrl(currentPage, currentSize);
+
       setVisible(usersLoading, false);
 
-      if (!Array.isArray(users) || users.length === 0) {
+      if (users.length === 0) {
         setVisible(usersEmpty, true);
         return;
       }
 
       renderUsers(users);
       setVisible(usersTableWrapper, true);
-    } catch (_) {
+      window.pagination.render(usersPagination, pageData, loadUsers);
+    } catch (error) {
       setVisible(usersLoading, false);
-      usersError.textContent = 'Не удалось загрузить список пользователей.';
+      usersError.textContent = error.message || 'Не удалось загрузить список пользователей.';
       setVisible(usersError, true);
     }
   }

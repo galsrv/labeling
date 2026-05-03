@@ -68,10 +68,6 @@
     setVisible(loginError, true);
   }
 
-  function setCookie(name, value) {
-    document.cookie = `${encodeURIComponent(name)}=${encodeURIComponent(value)}; path=/; SameSite=Lax`;
-  }
-
   async function parseApiError(response, fallbackMessage) {
     try {
       const data = await response.json();
@@ -104,6 +100,7 @@
     try {
       const response = await fetch(loginApiUrl, {
         method: 'POST',
+        credentials: 'same-origin',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -119,14 +116,6 @@
         return;
       }
 
-      const data = await response.json();
-      if (!data.access_token || !data.refresh_token) {
-        showError('Сервер не вернул токены аутентификации.');
-        return;
-      }
-
-      setCookie('access_token', data.access_token);
-      setCookie('refresh_token', data.refresh_token);
       window.location.href = rootUrl;
     } catch (_) {
       showError('Не удалось войти в систему.');

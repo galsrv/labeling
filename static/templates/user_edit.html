@@ -224,32 +224,13 @@
   async function fetchJson(url) {
     const response = await fetch(url);
     if (!response.ok) {
-      throw response;
+      throw await window.apiClient.errorFromResponse(response, 'Не удалось загрузить данные формы.');
     }
     return await response.json();
   }
 
   async function parseApiError(response, fallbackMessage) {
-    try {
-      const data = await response.json();
-      if (data && typeof data === 'object') {
-        if (typeof data.detail === 'string') {
-          return data.detail;
-        }
-        if (Array.isArray(data.detail) && data.detail.length > 0) {
-          const first = data.detail[0];
-          if (first && typeof first.msg === 'string') {
-            return first.msg;
-          }
-        }
-        if (typeof data.message === 'string') {
-          return data.message;
-        }
-      }
-    } catch (_) {
-      // ignore
-    }
-    return fallbackMessage;
+    return await window.apiClient.parseError(response, fallbackMessage);
   }
 
   function formatUserName(user) {
@@ -392,15 +373,11 @@
       is_active: isActiveInput.checked,
       role_id: currentRoleId,
       password: password,
-      created_by_id: 1,
-      updated_by_id: 1,
     };
   }
 
   function buildUpdatePayload(password) {
-    const payload = {
-      updated_by_id: 1,
-    };
+    const payload = {};
 
     if (firstNameInput.value.trim() !== (initialUser?.first_name ?? '')) {
       payload.first_name = firstNameInput.value.trim();
@@ -440,7 +417,7 @@
       if (error.status === 404) {
         showError('Объект не найден.');
       } else {
-        showError('Не удалось загрузить данные формы.');
+        showError(error.message || 'Не удалось загрузить данные формы.');
       }
     }
   }

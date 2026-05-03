@@ -1,10 +1,12 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database.config import get_async_session
+from auth.dependencies import is_labels_view_permitted, is_labels_edit_permitted
 from core.dependencies import logging_dependency
+from core.config import settings as s
 from frontend.responses import JsonToFrontendResponse
-from labels.schemas import LabelTemplatesReadSchema, LabelTemplatesCreateUpdateSchema, PrintLabelTestPayload
+from labels.schemas import LabelTemplatesPageSchema, LabelTemplatesReadSchema, LabelTemplatesCreateUpdateSchema, PrintLabelTestPayload
 from labels.service import labels_service
 from labels.variables import get_control_codes, get_label_variables
 
@@ -14,7 +16,8 @@ api_labels_router = APIRouter()
 @api_labels_router.get(
     '/control_codes',
     response_model=list[str],
-    summary='Получить контрольные коды'
+    summary='Получить контрольные коды',
+    dependencies=[Depends(is_labels_view_permitted), Depends(logging_dependency)]
 )
 async def get_labels_control_codes() -> list[str]:
     """Эндпоинт получения контрольных кодов для редактора."""
@@ -24,7 +27,8 @@ async def get_labels_control_codes() -> list[str]:
 @api_labels_router.get(
     '/variables',
     response_model=list[str],
-    summary='Получить переменные этикетки'
+    summary='Получить переменные этикетки',
+    dependencies=[Depends(is_labels_view_permitted), Depends(logging_dependency)]
 )
 async def get_labels_variables() -> list[str]:
     """Эндпоинт получения переменных для редактора."""
@@ -33,21 +37,30 @@ async def get_labels_variables() -> list[str]:
 
 @api_labels_router.get(
     '/',
-    response_model=list[LabelTemplatesReadSchema],
-    summary='Получить все шаблоны этикетки'
+    response_model=LabelTemplatesPageSchema,
+    summary='Получить список шаблонов этикетки',
+    dependencies=[Depends(is_labels_view_permitted), Depends(logging_dependency)]
 )
-async def get_all_labels(
-    session: AsyncSession = Depends(get_async_session)
-) -> list[LabelTemplatesReadSchema]:
-    """Эндпоинт получения всех шаблонов этикеток."""
-    labels = await labels_service.get_all(session)
+async def get_labels(
+    session: AsyncSession = Depends(get_async_session),
+    page: int = Query(
+        ge=1,
+        default=1),
+    size: int = Query(
+        ge=s.PAGINATION_MIN_SIZE,
+        le=s.PAGINATION_MAX_SIZE,
+        default=s.PAGINATION_DEFAULT_PAGE_SIZE),
+) -> LabelTemplatesPageSchema:
+    """Эндпоинт получения списка шаблонов этикеток."""
+    labels = await labels_service.get_page(session, page, size)
     return labels
 
 
 @api_labels_router.get(
     '/{label_id}',
     response_model=LabelTemplatesReadSchema,
-    summary='Получить шаблон этикетки'
+    summary='Получить шаблон этикетки',
+    dependencies=[Depends(is_labels_view_permitted), Depends(logging_dependency)]
 )
 async def get_label(
     label_id: int,
@@ -61,7 +74,8 @@ async def get_label(
 @api_labels_router.post(
     '/',
     response_model=LabelTemplatesReadSchema,
-    summary='Создать шаблон этикетки'
+    summary='Создать шаблон этикетки',
+    dependencies=[Depends(is_labels_edit_permitted), Depends(logging_dependency)]
 )
 async def create_label(
     data_input: LabelTemplatesCreateUpdateSchema,
@@ -75,7 +89,8 @@ async def create_label(
 @api_labels_router.put(
     '/{label_id}',
     response_model=LabelTemplatesReadSchema,
-    summary='Изменить шаблон этикетки'
+    summary='Изменить шаблон этикетки',
+    dependencies=[Depends(is_labels_edit_permitted), Depends(logging_dependency)]
 )
 async def update_label(
     label_id: int,
@@ -89,7 +104,8 @@ async def update_label(
 
 @api_labels_router.delete(
     '/{label_id}',
-    summary='Удалить шаблон этикетки'
+    summary='Удалить шаблон этикетки',
+    dependencies=[Depends(is_labels_edit_permitted), Depends(logging_dependency)]
 )
 async def delete_label(
     label_id: int,
@@ -104,7 +120,7 @@ async def delete_label(
         response_model=JsonToFrontendResponse,
         name='web_print_label_test',
         summary='Печать тестовой этикетки',
-        dependencies=[Depends(logging_dependency)]
+        dependencies=[Depends(is_labels_view_permitted), Depends(logging_dependency)]
 )
 async def web_print_label_test(
     label: PrintLabelTestPayload,

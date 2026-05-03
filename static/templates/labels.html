@@ -45,6 +45,10 @@
   </table>
 </div>
 
+<div id="labelsPagination" class="mt-3 d-none"></div>
+
+{% include "_pagination.html" %}
+
 <script>
   const labelsApiUrl = '/api/v1/labels/';
   const labelsLoading = document.getElementById('labelsLoading');
@@ -53,11 +57,46 @@
   const labelsEmpty = document.getElementById('labelsEmpty');
   const labelsTableWrap = document.getElementById('labelsTableWrap');
   const labelsTableBody = document.getElementById('labelsTableBody');
+  const labelsPagination = document.getElementById('labelsPagination');
   const labelEditUrlTemplate = '{{ url_for("web_update_label_form", label_id=0) }}';
+
+  const initialParams = new URLSearchParams(window.location.search);
+  let currentPage = Number(initialParams.get('page')) || 1;
+  let currentSize = Number(initialParams.get('size')) || null;
 
   function setVisible(element, isVisible) {
     if (!element) return;
     element.classList.toggle('d-none', !isVisible);
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+  }
+
+  function buildLabelsUrl(page, size) {
+    const params = new URLSearchParams({ page: String(page) });
+
+    if (size) {
+      params.set('size', String(size));
+    }
+
+    return `${labelsApiUrl}?${params.toString()}`;
+  }
+
+  function updateBrowserUrl(page, size) {
+    const params = new URLSearchParams(window.location.search);
+    params.set('page', String(page));
+
+    if (size) {
+      params.set('size', String(size));
+    }
+
+    window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`);
   }
 
   function getLabelEditUrl(labelId) {
@@ -86,6 +125,8 @@
     labelsTableBody.innerHTML = '';
 
     for (const label of labels) {
+      const labelName = escapeHtml(label.name);
+      const driverName = escapeHtml(label.driver_name || '—');
       const row = document.createElement('tr');
       row.innerHTML = `
         <td class="fw-semibold">#${label.id}</td>
@@ -94,12 +135,12 @@
             href="${getLabelEditUrl(label.id)}"
             class="fw-semibold text-truncate d-inline-block text-decoration-none text-reset"
             style="max-width: 50rem;"
-            title="${label.name}"
+            title="${labelName}"
           >
-            ${label.name}
+            ${labelName}
           </a>
         </td>
-        <td class="text-nowrap">${label.driver_name || '—'}</td>
+        <td class="text-nowrap">${driverName}</td>
         <td class="text-end">
           <a
             href="${getLabelEditUrl(label.id)}"
@@ -115,31 +156,44 @@
     }
   }
 
-  async function loadLabels() {
+  async function loadLabels(page = currentPage) {
     setVisible(labelsLoading, true);
     setVisible(labelsError, false);
     setVisible(labelsEmpty, false);
     setVisible(labelsTableWrap, false);
+    setVisible(labelsPagination, false);
 
     try {
-      const response = await fetch(labelsApiUrl);
+      const response = await fetch(buildLabelsUrl(page, currentSize));
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+        throw await window.apiClient.errorFromResponse(response, 'Не удалось загрузить список шаблонов этикеток.');
       }
 
-      const labels = await response.json();
+      const pageData = await response.json();
+      const labels = Array.isArray(pageData.items) ? pageData.items : [];
+
+      if (pageData.pages > 0 && pageData.page > pageData.pages) {
+        await loadLabels(pageData.pages);
+        return;
+      }
+
+      currentPage = Number(pageData.page ?? page);
+      currentSize = Number(pageData.size ?? currentSize);
+      updateBrowserUrl(currentPage, currentSize);
+
       setVisible(labelsLoading, false);
 
-      if (!Array.isArray(labels) || labels.length === 0) {
+      if (labels.length === 0) {
         setVisible(labelsEmpty, true);
         return;
       }
 
       renderLabels(labels);
       setVisible(labelsTableWrap, true);
-    } catch (_) {
+      window.pagination.render(labelsPagination, pageData, loadLabels);
+    } catch (error) {
       setVisible(labelsLoading, false);
-      labelsError.textContent = 'Не удалось загрузить список шаблонов этикеток.';
+      labelsError.textContent = error.message || 'Не удалось загрузить список шаблонов этикеток.';
       setVisible(labelsError, true);
     }
   }

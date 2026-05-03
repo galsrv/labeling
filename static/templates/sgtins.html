@@ -66,6 +66,12 @@
         body: formData,
       });
 
+      if (!response.ok) {
+        const message = await window.apiClient.parseError(response, 'Не удалось загрузить коды.');
+        setStatus(false, message);
+        return;
+      }
+
       const data = await response.json();
       if (data && typeof data.ok === 'boolean') {
         setStatus(data.ok, data.message || String(data.ok));

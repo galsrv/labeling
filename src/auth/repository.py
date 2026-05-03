@@ -24,11 +24,11 @@ class RefreshTokenRepository(BaseRepository):
 
         if db_obj is None:
             message = s.MESSAGE_DB_OBJECTS_GET_BY_FIELD.format(
-                model=RefreshTokenORM.__name__, field=RefreshTokenORM.refresh_token_hash.label, value=refresh_token_hash, success=bool(db_obj))
+                model=RefreshTokenORM.__name__, field='refresh_token_hash', value=refresh_token_hash, success=bool(db_obj))
             logger.debug(message)
             raise ObjectNotFound(message)
 
-        logger.debug(s.MESSAGE_DB_OBJECTS_GET_BY_FIELD.format(model=RefreshTokenORM.__name__, field=RefreshTokenORM.refresh_token_hash.label, value=refresh_token_hash, success=bool(db_obj)))
+        logger.debug(s.MESSAGE_DB_OBJECTS_GET_BY_FIELD.format(model=RefreshTokenORM.__name__, field='refresh_token_hash', value=refresh_token_hash, success=bool(db_obj)))
         return db_obj
 
     async def rotate_tokens(self, session: AsyncSession, old_token_id: int, new_token_dto: RefreshTokenCreateSchema) -> None:

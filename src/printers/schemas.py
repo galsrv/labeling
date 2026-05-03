@@ -3,6 +3,7 @@ from typing import Annotated
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, field_validator
 
 from core.config import settings as s
+from core.pagination import BasePageSchema
 from drivers.drivers import printer_driver_name_validator
 
 
@@ -15,6 +16,11 @@ class PrinterReadSchema(BaseModel):
     driver_name: str
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class PrinterPageSchema(BasePageSchema):
+    """Модель выдачи страницы данных."""
+    items: list[PrinterReadSchema]
 
 
 class PrinterCreateUpdateSchema(BaseModel):

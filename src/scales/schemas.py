@@ -3,6 +3,7 @@ from typing import Annotated
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field
 
 from core.config import settings as s
+from core.pagination import BasePageSchema
 from drivers.drivers import scales_driver_name_validator
 
 
@@ -15,6 +16,11 @@ class ScalesReadSchema(BaseModel):
     driver_name: Annotated[str, AfterValidator(scales_driver_name_validator)]
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class ScalesPageSchema(BasePageSchema):
+    """Модель выдачи страницы данных."""
+    items: list[ScalesReadSchema]
 
 
 class ScalesCreateUpdateSchema(BaseModel):

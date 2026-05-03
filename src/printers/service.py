@@ -12,6 +12,7 @@ from drivers.validators import DeviceResponse
 from frontend.responses import JsonToFrontendResponse
 
 from printers.schemas import (
+    PrinterPageSchema,
     PrinterShortSchema,
     PrinterReadSchema,
     PrinterCreateUpdateSchema,
@@ -27,11 +28,23 @@ T = TypeVar('T', bound=BaseModel)
 class PrintersService:
     """Сервисный слой для принтеров."""
 
-    async def get_all(self, session: AsyncSession) -> list[T]:
-        """Возвращаем из БД все принтеры."""
-        printers = await printers_repo.get_all(session)
-        printers_dto = [PrinterReadSchema.model_validate(printer) for printer in printers]
-        return printers_dto
+    async def get_page(
+            self,
+            session: AsyncSession,
+            page: int,
+            size: int,
+        ) -> PrinterPageSchema:
+        """Возвращаем страницу списка принтеров."""
+        items, page, pages, size, total = await printers_repo.get_page(session, page, size)
+
+        printers_page_dto = PrinterPageSchema(
+            items=[PrinterReadSchema.model_validate(item) for item in items],
+            page=page,
+            pages=pages,
+            size=size,
+            total=total,
+        )
+        return printers_page_dto
 
     async def get(self, session: AsyncSession, printer_id: int) -> T:
         """Возвращаем принтер по его id."""

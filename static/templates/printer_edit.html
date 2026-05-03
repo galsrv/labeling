@@ -125,13 +125,10 @@
 
       {% if not is_create %}
         <button
-          type="submit"
+          type="button"
           class="btn btn-sm btn-outline-danger"
           id="deletePrinterBtn"
           data-requires-edit
-          formmethod="post"
-          formnovalidate
-          onclick="return confirm('Удалить принтер?');"
         >
           Удалить
         </button>
@@ -381,32 +378,13 @@
   async function fetchJson(url) {
     const response = await fetch(url);
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
+      throw await window.apiClient.errorFromResponse(response, 'Не удалось загрузить данные формы.');
     }
     return await response.json();
   }
 
   async function parseApiError(response, fallbackMessage) {
-    try {
-      const data = await response.json();
-      if (data && typeof data === 'object') {
-        if (typeof data.detail === 'string') {
-          return data.detail;
-        }
-        if (Array.isArray(data.detail) && data.detail.length > 0) {
-          const first = data.detail[0];
-          if (first && typeof first.msg === 'string') {
-            return first.msg;
-          }
-        }
-        if (typeof data.message === 'string') {
-          return data.message;
-        }
-      }
-    } catch (_) {
-      // ignore parsing error
-    }
-    return fallbackMessage;
+    return await window.apiClient.parseError(response, fallbackMessage);
   }
 
   function buildPrinterPayload() {
@@ -459,10 +437,10 @@
       setVisible(printerForm, true);
       setVisible(printerFeatures, !isCreate);
     } catch (error) {
-      if (error instanceof Error && error.message === 'HTTP 404') {
+      if (error.status === 404) {
         setError('Объект не найден.');
       } else {
-        setError('Не удалось загрузить данные формы.');
+        setError(error.message || 'Не удалось загрузить данные формы.');
       }
     }
   }
@@ -513,6 +491,8 @@
   if (deletePrinterBtn) {
     deletePrinterBtn.addEventListener('click', async (event) => {
       event.preventDefault();
+      if (!confirm('Удалить принтер?')) return;
+
       setVisible(printerEditError, false);
       setVisible(printerEditSuccess, false);
 
@@ -578,6 +558,12 @@
           body: JSON.stringify(buildPrinterPayload()),
         });
 
+        if (!response.ok) {
+          const message = await parseApiError(response, 'Не удалось проверить подключение.');
+          setStatus(testConnectionStatus, false, message);
+          return;
+        }
+
         const data = await handleJsonOrText(response);
         const ok = toOk(data, response.ok);
         const message = (data && typeof data === 'object' ? data.message : '') || (ok ? 'ОК' : 'Ошибка');
@@ -618,6 +604,12 @@
           body: formData,
         });
 
+        if (!response.ok) {
+          const message = await parseApiError(response, 'Не удалось загрузить шрифт.');
+          setStatus(loadFontStatus, false, message);
+          return;
+        }
+
         const data = await handleJsonOrText(response);
         const ok = toOk(data, response.ok);
         const message = (data && typeof data === 'object' ? data.message : '') || (ok ? 'Готово' : 'Ошибка');
@@ -651,6 +643,12 @@
           body: formData,
         });
 
+        if (!response.ok) {
+          const message = await parseApiError(response, 'Не удалось загрузить картинку.');
+          setStatus(loadImageStatus, false, message);
+          return;
+        }
+
         const data = await handleJsonOrText(response);
         const ok = toOk(data, response.ok);
         const message = (data && typeof data === 'object' ? data.message : '') || (ok ? 'Готово' : 'Ошибка');
@@ -677,6 +675,11 @@
           method: 'POST',
           body: formData,
         });
+
+        if (!response.ok) {
+          sendCommandOutput.textContent = await parseApiError(response, 'Не удалось отправить команду.');
+          return;
+        }
 
         const data = await handleJsonOrText(response);
         if (data && typeof data === 'object') {

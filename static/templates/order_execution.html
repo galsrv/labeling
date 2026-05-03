@@ -171,26 +171,7 @@
   }
 
   async function parseApiError(response, fallbackMessage) {
-    try {
-      const data = await response.json();
-      if (data && typeof data === 'object') {
-        if (typeof data.detail === 'string') {
-          return data.detail;
-        }
-        if (Array.isArray(data.detail) && data.detail.length > 0) {
-          const first = data.detail[0];
-          if (first && typeof first.msg === 'string') {
-            return first.msg;
-          }
-        }
-        if (typeof data.message === 'string') {
-          return data.message;
-        }
-      }
-    } catch (_) {
-      // ignore
-    }
-    return fallbackMessage;
+    return await window.apiClient.parseError(response, fallbackMessage);
   }
 
   function renderOrder(order) {
@@ -214,7 +195,7 @@
     try {
       const response = await fetch(orderApiUrl);
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+        throw await window.apiClient.errorFromResponse(response, 'Не удалось загрузить данные задания.');
       }
 
       const order = await response.json();
@@ -222,10 +203,10 @@
       setVisible(orderLoading, false);
       setVisible(orderContent, true);
     } catch (error) {
-      if (error instanceof Error && error.message === 'HTTP 404') {
+      if (error.status === 404) {
         setError('Объект не найден.');
       } else {
-        setError('Не удалось загрузить данные задания.');
+        setError(error.message || 'Не удалось загрузить данные задания.');
       }
     }
   }
@@ -268,6 +249,9 @@
             if (refreshedOrderResponse.ok) {
               const refreshedOrder = await refreshedOrderResponse.json();
               renderOrder(refreshedOrder);
+            } else {
+              const message = await parseApiError(refreshedOrderResponse, 'Не удалось обновить данные задания.');
+              setBatchPrintStatus(false, message);
             }
           } catch (_) {
             // ignore refresh error, printing result is already shown

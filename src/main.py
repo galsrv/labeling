@@ -1,5 +1,6 @@
 import uvicorn
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from core.config import settings as s
@@ -14,6 +15,14 @@ fastapi_app = FastAPI(
     docs_url=s.DOCS_URL,
     redoc_url=s.REDOC_URL,
     lifespan=lifespan_tasks,
+)
+
+fastapi_app.add_middleware(
+    CORSMiddleware,
+    allow_origins=s.ALLOWED_ORIGINS,
+    allow_credentials=True,
+    allow_methods=['*'],
+    allow_headers=['*'],
 )
 
 fastapi_app.include_router(api_router)

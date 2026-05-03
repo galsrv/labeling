@@ -1,5 +1,6 @@
 from pydantic import BaseModel, ConfigDict
 
+from core.pagination import BasePageSchema
 from printers.schemas import PrinterReadSchema
 from scales.schemas import ScalesReadSchema
 
@@ -13,3 +14,8 @@ class WorkplaceReadSchema(BaseModel):
     printer2: PrinterReadSchema | None = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class WorkplacePageSchema(BasePageSchema):
+    """Модель выдачи страницы данных."""
+    items: list[WorkplaceReadSchema]

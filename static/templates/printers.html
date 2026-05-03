@@ -25,6 +25,10 @@
 
 <div id="printersList" class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4 d-none"></div>
 
+<div id="printersPagination" class="mt-3 d-none"></div>
+
+{% include "_pagination.html" %}
+
 <script>
   const printersApiUrl = '/api/v1/printers/';
   const printersLoading = document.getElementById('printersLoading');
@@ -32,11 +36,46 @@
   const printersError = document.getElementById('printersError');
   const printersEmpty = document.getElementById('printersEmpty');
   const printersList = document.getElementById('printersList');
+  const printersPagination = document.getElementById('printersPagination');
   const printerEditUrlTemplate = '{{ url_for("web_update_printer_form", printer_id=0) }}';
+
+  const initialParams = new URLSearchParams(window.location.search);
+  let currentPage = Number(initialParams.get('page')) || 1;
+  let currentSize = Number(initialParams.get('size')) || null;
 
   function setVisible(element, isVisible) {
     if (!element) return;
     element.classList.toggle('d-none', !isVisible);
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+  }
+
+  function buildPrintersUrl(page, size) {
+    const params = new URLSearchParams({ page: String(page) });
+
+    if (size) {
+      params.set('size', String(size));
+    }
+
+    return `${printersApiUrl}?${params.toString()}`;
+  }
+
+  function updateBrowserUrl(page, size) {
+    const params = new URLSearchParams(window.location.search);
+    params.set('page', String(page));
+
+    if (size) {
+      params.set('size', String(size));
+    }
+
+    window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`);
   }
 
   function getPrinterEditUrl(printerId) {
@@ -65,6 +104,9 @@
     printersList.innerHTML = '';
 
     for (const printer of printers) {
+      const printerIp = escapeHtml(printer.ip);
+      const printerDriverName = escapeHtml(printer.driver_name || '—');
+      const printerDescription = escapeHtml(printer.description || '');
       const col = document.createElement('div');
       col.className = 'col';
       col.innerHTML = `
@@ -82,18 +124,18 @@
 
             <dl class="row mb-0">
               <dt class="col-5">IP</dt>
-              <dd class="col-7 text-break mb-2">${printer.ip}</dd>
+              <dd class="col-7 text-break mb-2">${printerIp}</dd>
 
               <dt class="col-5">Порт</dt>
               <dd class="col-7 mb-2">${printer.port}</dd>
 
               <dt class="col-5">Драйвер</dt>
-              <dd class="col-7 mb-2">${printer.driver_name || '—'}</dd>
+              <dd class="col-7 mb-2">${printerDriverName}</dd>
 
               <dt class="col-5">Описание</dt>
               <dd class="col-7 mb-0">
-                <span class="d-block text-truncate" style="max-width: 100%;" title="${printer.description}">
-                  ${printer.description}
+                <span class="d-block text-truncate" style="max-width: 100%;" title="${printerDescription}">
+                  ${printerDescription}
                 </span>
               </dd>
             </dl>
@@ -104,31 +146,44 @@
     }
   }
 
-  async function loadPrinters() {
+  async function loadPrinters(page = currentPage) {
     setVisible(printersLoading, true);
     setVisible(printersError, false);
     setVisible(printersEmpty, false);
     setVisible(printersList, false);
+    setVisible(printersPagination, false);
 
     try {
-      const response = await fetch(printersApiUrl);
+      const response = await fetch(buildPrintersUrl(page, currentSize));
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+        throw await window.apiClient.errorFromResponse(response, 'Не удалось загрузить список принтеров.');
       }
 
-      const printers = await response.json();
+      const pageData = await response.json();
+      const printers = Array.isArray(pageData.items) ? pageData.items : [];
+
+      if (pageData.pages > 0 && pageData.page > pageData.pages) {
+        await loadPrinters(pageData.pages);
+        return;
+      }
+
+      currentPage = Number(pageData.page ?? page);
+      currentSize = Number(pageData.size ?? currentSize);
+      updateBrowserUrl(currentPage, currentSize);
+
       setVisible(printersLoading, false);
 
-      if (!Array.isArray(printers) || printers.length === 0) {
+      if (printers.length === 0) {
         setVisible(printersEmpty, true);
         return;
       }
 
       renderPrinters(printers);
       setVisible(printersList, true);
-    } catch (_) {
+      window.pagination.render(printersPagination, pageData, loadPrinters);
+    } catch (error) {
       setVisible(printersLoading, false);
-      printersError.textContent = 'Не удалось загрузить список принтеров.';
+      printersError.textContent = error.message || 'Не удалось загрузить список принтеров.';
       setVisible(printersError, true);
     }
   }

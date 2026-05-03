@@ -1,6 +1,8 @@
+import math
+
 from loguru import logger
 from pydantic import BaseModel
-from sqlalchemy import delete, select, update
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -11,9 +13,45 @@ from database.exceptions import ObjectNotFound, ObjectNotModified
 
 class BaseRepository:
     """Базовый класс методов обращения в БД."""
+
     def __init__(self, model: type[TOrm]) -> None:
         """Инициализация объекта класса."""
         self.model = model
+
+    async def get_page(
+            self,
+            session: AsyncSession,
+            page: int,
+            size: int,
+        ) -> tuple[list[TOrm], int, int, int, int]:
+        """Метод чтения записей таблицы с ограничением по числе возвращаемых записей.
+
+        Рассчитываем данные для корректной пагинации - total & pages
+        """
+        count_query = select(func.count()).select_from(self.model)
+        total = await session.scalar(count_query) or 0
+        pages = math.ceil(total / size) if total else 0
+
+        query = (
+            select(self.model)
+            .order_by(*self.model.__order_by__)
+            .offset((page - 1) * size)
+            .limit(size)
+        )
+
+        result = await session.execute(query)
+        items = list(result.scalars().all())
+        logger.debug(s.MESSAGE_DB_OBJECT_GET_MULTI.format(model=self.model.__name__, number=len(items)))
+
+        return items, page, pages, size, total
+
+    async def get_all(self, session: AsyncSession) -> list[TOrm]:
+        """Метод чтения всех записей таблицы."""
+        query = select(self.model).order_by(*self.model.__order_by__)
+        result = await session.execute(query)
+        result = result.scalars().all()
+        logger.debug(s.MESSAGE_DB_OBJECT_GET_MULTI.format(model=self.model.__name__, number=len(result)))
+        return result
 
     async def get(self, session: AsyncSession, obj_id: int) -> TOrm:
         """Функция чтения единичной записи таблицы."""
@@ -29,14 +67,6 @@ class BaseRepository:
         logger.debug(s.MESSAGE_DB_OBJECT_GET.format(model=self.model.__name__, obj_id=obj_id))
 
         return db_obj
-
-    async def get_all(self, session: AsyncSession) -> list[TOrm]:
-        """Метод чтения всех записей таблицы."""
-        query = select(self.model).order_by(*self.model.__order_by__)
-        result = await session.execute(query)
-        result = result.scalars().all()
-        logger.debug(s.MESSAGE_DB_OBJECT_GET_MULTI.format(model=self.model.__name__, number=len(result)))
-        return result
 
     async def create(self, session: AsyncSession, data_input: BaseModel) -> TOrm:
         """Метод создания новой записи в таблице."""

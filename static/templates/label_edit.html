@@ -112,13 +112,10 @@
 
       {% if not is_create %}
         <button
-          type="submit"
+          type="button"
           class="btn btn-sm btn-outline-danger"
           id="deleteLabelBtn"
           data-requires-edit
-          formmethod="post"
-          formnovalidate
-          onclick="return confirm('Удалить шаблон этикетки?');"
         >
           Удалить
         </button>
@@ -235,32 +232,13 @@
   async function fetchJson(url) {
     const response = await fetch(url);
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
+      throw await window.apiClient.errorFromResponse(response, 'Не удалось загрузить данные формы.');
     }
     return await response.json();
   }
 
   async function parseApiError(response, fallbackMessage) {
-    try {
-      const data = await response.json();
-      if (data && typeof data === 'object') {
-        if (typeof data.detail === 'string') {
-          return data.detail;
-        }
-        if (Array.isArray(data.detail) && data.detail.length > 0) {
-          const first = data.detail[0];
-          if (first && typeof first.msg === 'string') {
-            return first.msg;
-          }
-        }
-        if (typeof data.message === 'string') {
-          return data.message;
-        }
-      }
-    } catch (_) {
-      // ignore parsing error
-    }
-    return fallbackMessage;
+    return await window.apiClient.parseError(response, fallbackMessage);
   }
 
   function setupInlineEdit() {
@@ -429,8 +407,8 @@
       }
 
       setPrinterInfo(`${printer.ip} - ${printer.description}`, printer.id);
-    } catch (_) {
-      setPrinterInfo('Не определено рабочее место');
+    } catch (error) {
+      setPrinterInfo(error.message || 'Не определено рабочее место');
       return;
     }
   }
@@ -488,10 +466,10 @@
         autoResize();
       });
     } catch (error) {
-      if (error instanceof Error && error.message === 'HTTP 404') {
+      if (error.status === 404) {
         setError('Объект не найден.');
       } else {
-        setError('Не удалось загрузить данные формы.');
+        setError(error.message || 'Не удалось загрузить данные формы.');
       }
     }
   }
@@ -540,6 +518,8 @@
   if (deleteLabelBtn) {
     deleteLabelBtn.addEventListener('click', async (event) => {
       event.preventDefault();
+      if (!confirm('Удалить шаблон этикетки?')) return;
+
       setVisible(labelEditError, false);
       setVisible(labelEditSuccess, false);
 

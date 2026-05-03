@@ -103,6 +103,22 @@ class AuthService():
 
         return TokenPairSchema(access_token=access_token, refresh_token=new_refresh_token)
 
+    async def logout(self, session: AsyncSession, refresh_token: str) -> None:
+        """Логаут пользователя.
+
+        1. Хэшируем переданный токен
+        2. Ищем запись токена в БД по значению хэша.
+        3. Если не нашли, то не очень-то и хотелось.
+        4. Если нашли, то удаляем.
+        """
+        refresh_token_hash = tokens.hash_token(refresh_token)
+
+        try:
+            token_dto = await tokens_repo.get_by_refresh_token(session, refresh_token_hash)
+            await tokens_repo.delete(session, token_dto.id)
+        except ObjectNotFound:
+            pass
+
     async def refresh(self, session: AsyncSession, data_input: RefreshRequestSchema) -> TokenPairSchema:
         """Обновление пары access/refresh токенов.
 

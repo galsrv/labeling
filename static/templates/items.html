@@ -41,6 +41,10 @@
     </table>
 </div>
 
+<div id="itemsPagination" class="mt-3 d-none"></div>
+
+{% include "_pagination.html" %}
+
 <script>
   const itemsApiUrl = '/api/v1/items/';
   const itemsLoading = document.getElementById('itemsLoading');
@@ -48,6 +52,11 @@
   const itemsEmpty = document.getElementById('itemsEmpty');
   const itemsTableWrapper = document.getElementById('itemsTableWrapper');
   const itemsTableBody = document.getElementById('itemsTableBody');
+  const itemsPagination = document.getElementById('itemsPagination');
+
+  const initialParams = new URLSearchParams(window.location.search);
+  let currentPage = Number(initialParams.get('page')) || 1;
+  let currentSize = Number(initialParams.get('size')) || null;
 
   function formatWeight(value) {
     const number = Number(value ?? 0);
@@ -58,16 +67,47 @@
     element.classList.toggle('d-none', !isVisible);
   }
 
+  function escapeHtml(value) {
+    return String(value ?? '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+  }
+
+  function buildItemsUrl(page, size) {
+    const params = new URLSearchParams({ page: String(page) });
+
+    if (size) {
+      params.set('size', String(size));
+    }
+
+    return `${itemsApiUrl}?${params.toString()}`;
+  }
+
+  function updateBrowserUrl(page, size) {
+    const params = new URLSearchParams(window.location.search);
+    params.set('page', String(page));
+
+    if (size) {
+      params.set('size', String(size));
+    }
+
+    window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`);
+  }
+
   function renderItems(items) {
     itemsTableBody.innerHTML = '';
 
     for (const item of items) {
+      const itemName = escapeHtml(item.name);
       const row = document.createElement('tr');
       row.innerHTML = `
         <td class="fw-semibold">#${item.id}</td>
         <td>
-          <div class="fw-semibold text-truncate" style="max-width: 40rem;" title="${item.name}">
-            ${item.name}
+          <div class="fw-semibold text-truncate" style="max-width: 40rem;" title="${itemName}">
+            ${itemName}
           </div>
         </td>
         <td class="text-center">
@@ -81,31 +121,44 @@
     }
   }
 
-  async function loadItems() {
+  async function loadItems(page = currentPage) {
     setVisible(itemsLoading, true);
     setVisible(itemsError, false);
     setVisible(itemsEmpty, false);
     setVisible(itemsTableWrapper, false);
+    setVisible(itemsPagination, false);
 
     try {
-      const response = await fetch(itemsApiUrl);
+      const response = await fetch(buildItemsUrl(page, currentSize));
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+        throw await window.apiClient.errorFromResponse(response, 'Не удалось загрузить список продуктов.');
       }
 
-      const items = await response.json();
+      const pageData = await response.json();
+      const items = Array.isArray(pageData.items) ? pageData.items : [];
+
+      if (pageData.pages > 0 && pageData.page > pageData.pages) {
+        await loadItems(pageData.pages);
+        return;
+      }
+
+      currentPage = Number(pageData.page ?? page);
+      currentSize = Number(pageData.size ?? currentSize);
+      updateBrowserUrl(currentPage, currentSize);
+
       setVisible(itemsLoading, false);
 
-      if (!Array.isArray(items) || items.length === 0) {
+      if (items.length === 0) {
         setVisible(itemsEmpty, true);
         return;
       }
 
       renderItems(items);
       setVisible(itemsTableWrapper, true);
+      window.pagination.render(itemsPagination, pageData, loadItems);
     } catch (error) {
       setVisible(itemsLoading, false);
-      itemsError.textContent = 'Не удалось загрузить список продуктов.';
+      itemsError.textContent = error.message || 'Не удалось загрузить список продуктов.';
       setVisible(itemsError, true);
     }
   }

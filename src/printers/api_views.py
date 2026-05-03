@@ -1,12 +1,13 @@
-from fastapi import APIRouter, Depends, File, Form, UploadFile
+from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
 from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import settings as s
+from auth.dependencies import is_printers_view_permitted, is_printers_edit_permitted
 from database.config import get_async_session
 from core.dependencies import logging_dependency
 from frontend.responses import JsonToFrontendResponse
-from printers.schemas import PrinterFontSchema, PrinterImageSchema, PrinterReadSchema, PrinterCreateUpdateSchema, PrinterShortSchema
+from printers.schemas import PrinterFontSchema, PrinterImageSchema, PrinterPageSchema, PrinterReadSchema, PrinterCreateUpdateSchema, PrinterShortSchema
 from printers.service import printers_service
 
 api_printers_router = APIRouter()
@@ -14,21 +15,30 @@ api_printers_router = APIRouter()
 
 @api_printers_router.get(
     '/',
-    response_model=list[PrinterReadSchema],
-    summary='Получить все принтеры'
+    response_model=PrinterPageSchema,
+    summary='Получить список принтеров',
+    dependencies=[Depends(is_printers_view_permitted), Depends(logging_dependency)]
 )
-async def get_all_printers(
-    session: AsyncSession = Depends(get_async_session)
-) -> list[PrinterReadSchema]:
-    """Эндпоинт получения всех принтеров."""
-    printers = await printers_service.get_all(session)
+async def get_printers(
+    session: AsyncSession = Depends(get_async_session),
+    page: int = Query(
+        ge=1,
+        default=1),
+    size: int = Query(
+        ge=s.PAGINATION_MIN_SIZE,
+        le=s.PAGINATION_MAX_SIZE,
+        default=s.PAGINATION_DEFAULT_PAGE_SIZE),
+) -> PrinterPageSchema:
+    """Эндпоинт получения списка принтеров."""
+    printers = await printers_service.get_page(session, page, size)
     return printers
 
 
 @api_printers_router.get(
     '/{printer_id}',
     response_model=PrinterReadSchema,
-    summary='Получить принтер'
+    summary='Получить принтер',
+    dependencies=[Depends(is_printers_view_permitted), Depends(logging_dependency)]
 )
 async def get_printer(
     printer_id: int,
@@ -42,7 +52,8 @@ async def get_printer(
 @api_printers_router.post(
     '/',
     response_model=PrinterReadSchema,
-    summary='Создать принтер'
+    summary='Создать принтер',
+    dependencies=[Depends(is_printers_edit_permitted), Depends(logging_dependency)]
 )
 async def create_printer(
     data_input: PrinterCreateUpdateSchema,
@@ -56,7 +67,8 @@ async def create_printer(
 @api_printers_router.put(
     '/{printer_id}',
     response_model=PrinterReadSchema,
-    summary='Изменить принтер'
+    summary='Изменить принтер',
+    dependencies=[Depends(is_printers_edit_permitted), Depends(logging_dependency)]
 )
 async def update_printer(
     printer_id: int,
@@ -70,7 +82,8 @@ async def update_printer(
 
 @api_printers_router.delete(
     '/{printer_id}',
-    summary='Удалить принтер'
+    summary='Удалить принтер',
+    dependencies=[Depends(is_printers_edit_permitted), Depends(logging_dependency)]
 )
 async def delete_printer(
     printer_id: int,
@@ -85,7 +98,7 @@ async def delete_printer(
         response_model=JsonToFrontendResponse,
         name='web_printer_test_connection',
         summary='Проверка соединения с принтером',
-        dependencies=[Depends(logging_dependency)]
+        dependencies=[Depends(is_printers_view_permitted), Depends(logging_dependency)]
 )
 async def web_printer_test_connection(
     printer_dto: PrinterShortSchema,
@@ -99,7 +112,7 @@ async def web_printer_test_connection(
         response_model=JsonToFrontendResponse,
         name='web_printer_load_font',
         summary='Загрузка шрифта в принтер',
-        dependencies=[Depends(logging_dependency)]
+        dependencies=[Depends(is_printers_view_permitted), Depends(logging_dependency)]
 )
 async def web_printer_load_font(
     font_id: int = Form(),
@@ -135,7 +148,7 @@ async def web_printer_load_font(
         response_model=JsonToFrontendResponse,
         name='web_printer_load_image',
         summary='Загрузка картинки в принтер',
-        dependencies=[Depends(logging_dependency)]
+        dependencies=[Depends(is_printers_view_permitted), Depends(logging_dependency)]
 )
 async def web_printer_load_image(
     ip: str = Form(),
@@ -165,7 +178,7 @@ async def web_printer_load_image(
         response_model_exclude_none=True,
         name='web_printer_send_arbitrary_command',
         summary='Отправка произвольной команды',
-        dependencies=[Depends(logging_dependency)]
+        dependencies=[Depends(is_printers_view_permitted), Depends(logging_dependency)]
 )
 async def web_printer_send_arbitrary_command(
     ip: str = Form(),

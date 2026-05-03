@@ -25,6 +25,10 @@
 
 <div id="scalesList" class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4 d-none"></div>
 
+<div id="scalesPagination" class="mt-3 d-none"></div>
+
+{% include "_pagination.html" %}
+
 <script>
   const scalesApiUrl = '/api/v1/scales/';
   const scalesLoading = document.getElementById('scalesLoading');
@@ -32,10 +36,45 @@
   const scalesError = document.getElementById('scalesError');
   const scalesEmpty = document.getElementById('scalesEmpty');
   const scalesList = document.getElementById('scalesList');
+  const scalesPagination = document.getElementById('scalesPagination');
   const scalesEditUrlTemplate = '{{ url_for("web_update_scales_form", scales_id=0) }}';
+
+  const initialParams = new URLSearchParams(window.location.search);
+  let currentPage = Number(initialParams.get('page')) || 1;
+  let currentSize = Number(initialParams.get('size')) || null;
 
   function setVisible(element, isVisible) {
     element.classList.toggle('d-none', !isVisible);
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+  }
+
+  function buildScalesUrl(page, size) {
+    const params = new URLSearchParams({ page: String(page) });
+
+    if (size) {
+      params.set('size', String(size));
+    }
+
+    return `${scalesApiUrl}?${params.toString()}`;
+  }
+
+  function updateBrowserUrl(page, size) {
+    const params = new URLSearchParams(window.location.search);
+    params.set('page', String(page));
+
+    if (size) {
+      params.set('size', String(size));
+    }
+
+    window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`);
   }
 
   function getScalesEditUrl(scalesId) {
@@ -61,13 +100,15 @@
   }
 
   function renderDriverName(scale) {
-    return scale.driver_name || '—';
+    return escapeHtml(scale.driver_name || '—');
   }
 
   function renderScales(scales) {
     scalesList.innerHTML = '';
 
     for (const scale of scales) {
+      const scaleIp = escapeHtml(scale.ip);
+      const scaleDescription = escapeHtml(scale.description || '');
       const col = document.createElement('div');
       col.className = 'col';
       col.innerHTML = `
@@ -85,7 +126,7 @@
 
             <dl class="row mb-0">
               <dt class="col-5">IP</dt>
-              <dd class="col-7 text-break mb-2">${scale.ip}</dd>
+              <dd class="col-7 text-break mb-2">${scaleIp}</dd>
 
               <dt class="col-5">Порт</dt>
               <dd class="col-7 mb-2">${scale.port}</dd>
@@ -95,8 +136,8 @@
 
               <dt class="col-5">Описание</dt>
               <dd class="col-7 mb-0">
-                <span class="d-block text-truncate" style="max-width: 100%;" title="${scale.description}">
-                  ${scale.description}
+                <span class="d-block text-truncate" style="max-width: 100%;" title="${scaleDescription}">
+                  ${scaleDescription}
                 </span>
               </dd>
             </dl>
@@ -107,31 +148,44 @@
     }
   }
 
-  async function loadScales() {
+  async function loadScales(page = currentPage) {
     setVisible(scalesLoading, true);
     setVisible(scalesError, false);
     setVisible(scalesEmpty, false);
     setVisible(scalesList, false);
+    setVisible(scalesPagination, false);
 
     try {
-      const response = await fetch(scalesApiUrl);
+      const response = await fetch(buildScalesUrl(page, currentSize));
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+        throw await window.apiClient.errorFromResponse(response, 'Не удалось загрузить список весов.');
       }
 
-      const scales = await response.json();
+      const pageData = await response.json();
+      const scales = Array.isArray(pageData.items) ? pageData.items : [];
+
+      if (pageData.pages > 0 && pageData.page > pageData.pages) {
+        await loadScales(pageData.pages);
+        return;
+      }
+
+      currentPage = Number(pageData.page ?? page);
+      currentSize = Number(pageData.size ?? currentSize);
+      updateBrowserUrl(currentPage, currentSize);
+
       setVisible(scalesLoading, false);
 
-      if (!Array.isArray(scales) || scales.length === 0) {
+      if (scales.length === 0) {
         setVisible(scalesEmpty, true);
         return;
       }
 
       renderScales(scales);
       setVisible(scalesList, true);
+      window.pagination.render(scalesPagination, pageData, loadScales);
     } catch (error) {
       setVisible(scalesLoading, false);
-      scalesError.textContent = 'Не удалось загрузить список весов.';
+      scalesError.textContent = error.message || 'Не удалось загрузить список весов.';
       setVisible(scalesError, true);
     }
   }

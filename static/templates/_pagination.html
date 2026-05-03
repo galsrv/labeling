@@ -1,0 +1,73 @@
+<script>
+  window.pagination = window.pagination || {
+    render(container, pageData, onPageChange) {
+      const currentPage = Number(pageData?.page ?? 1);
+      const pages = Number(pageData?.pages ?? 0);
+
+      container.innerHTML = '';
+      container.classList.toggle('d-none', pages <= 1);
+
+      if (pages <= 1) {
+        return;
+      }
+
+      const nav = document.createElement('nav');
+      nav.setAttribute('aria-label', 'Навигация по страницам');
+
+      const list = document.createElement('ul');
+      list.className = 'pagination justify-content-center mb-0';
+
+      const addButton = (label, targetPage, { active = false, disabled = false, ariaLabel = '' } = {}) => {
+        const item = document.createElement('li');
+        item.className = `page-item${active ? ' active' : ''}${disabled ? ' disabled' : ''}`;
+
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'page-link';
+        button.textContent = label;
+
+        if (ariaLabel) {
+          button.setAttribute('aria-label', ariaLabel);
+        }
+
+        if (disabled) {
+          button.disabled = true;
+        } else {
+          button.addEventListener('click', () => onPageChange(targetPage));
+        }
+
+        item.appendChild(button);
+        list.appendChild(item);
+      };
+
+      addButton('Назад', currentPage - 1, {
+        disabled: currentPage <= 1,
+        ariaLabel: 'Предыдущая страница',
+      });
+
+      const visiblePages = new Set([1, pages, currentPage - 1, currentPage, currentPage + 1]);
+      let previousRenderedPage = 0;
+
+      for (let page = 1; page <= pages; page += 1) {
+        if (!visiblePages.has(page)) {
+          continue;
+        }
+
+        if (page - previousRenderedPage > 1) {
+          addButton('...', page, { disabled: true });
+        }
+
+        addButton(String(page), page, { active: page === currentPage });
+        previousRenderedPage = page;
+      }
+
+      addButton('Вперед', currentPage + 1, {
+        disabled: currentPage >= pages,
+        ariaLabel: 'Следующая страница',
+      });
+
+      nav.appendChild(list);
+      container.appendChild(nav);
+    },
+  };
+</script>

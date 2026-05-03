@@ -1,16 +1,30 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from items.repository import items_repo
-from items.schemas import ItemReadSchema
+from items.schemas import ItemReadSchema, ItemsPageSchema
 
 
 class ItemsService:
     """Сервисный слой для продуктов."""
-    async def get_all(self, session: AsyncSession) -> list[ItemReadSchema]:
-        """Возвращаем из БД все продукты."""
-        items = await items_repo.get_all(session)
-        items_dto = [ItemReadSchema.model_validate(item) for item in items]
-        return items_dto
+
+    async def get_page(
+            self,
+            session: AsyncSession,
+            page: int,
+            size: int,
+        ) -> ItemsPageSchema:
+        """Возвращаем из БД список продуктов."""
+        items, page, pages, size, total = await items_repo.get_page(session, page, size)
+
+        items_page_dto = ItemsPageSchema(
+            items=[ItemReadSchema.model_validate(item) for item in items],
+            page=page,
+            pages=pages,
+            size=size,
+            total=total,
+        )
+
+        return items_page_dto
 
     async def get(self, session: AsyncSession, item_id: int) -> ItemReadSchema:
         """Возвращаем из БД продукт по его id."""

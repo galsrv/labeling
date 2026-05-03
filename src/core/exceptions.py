@@ -6,7 +6,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from core.log import logger
 from core.config import settings as s, templates
-from auth.exceptions import BaseAuthException
+from auth.exceptions import BaseAuthException, NotAuthorizedError
 from database.exceptions import BaseDBException, ObjectNotFound
 
 
@@ -19,7 +19,7 @@ def _html_not_found_response(request: Request) -> HTMLResponse:
     )
 
 
-def register_exception_handlers(app: FastAPI) -> None:
+def register_exception_handlers(app: FastAPI) -> None:  # noqa: C901
     """Регистрируем исключения для всех FastAPI-функций."""
 
     @app.exception_handler(BaseDBException)
@@ -72,6 +72,16 @@ def register_exception_handlers(app: FastAPI) -> None:
 
         # Для пользователей API оставляем дефолтное поведение FastAPI
         return await request_validation_exception_handler(request, exc)
+
+    @app.exception_handler(NotAuthorizedError)
+    async def forbidden(request: Request, exc: NotAuthorizedError) -> JSONResponse:
+        """Обработчик исключений для ошибки авторизации пользователя на выполнение операции."""
+        logger.info(s.MESSAGE_ERROR_PROCESSING_REQUEST.format(url=str(request.url), error=str(exc)))
+
+        return JSONResponse(
+            status_code=status.HTTP_403_FORBIDDEN,
+            content={'detail': str(exc)},
+        )
 
     @app.exception_handler(BaseAuthException)
     async def invalid_credentials(request: Request, exc: BaseAuthException) -> JSONResponse:

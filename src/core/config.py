@@ -22,13 +22,15 @@ class Settings(BaseSettings):
     BACKEND_HOST: str = '127.0.0.1'
     BACKEND_PORT: int = 8000
 
+    ALLOWED_ORIGINS: list[str]
+
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str
     POSTGRES_DB_HOST: str
     POSTGRES_DB_PORT: str
     POSTGRES_DB: str
 
-    SQL_ECHO: bool = False
+    SQL_ECHO: bool
 
     @property
     def DATABASE_URL(self) -> str:  # noqa: D102, N802
@@ -58,6 +60,12 @@ class Settings(BaseSettings):
     LOG_FILE_PATH: str = '../logs/log.txt'
     LOG_NUMBER_OF_FILES_TO_KEEP: int = 5
     LOG_FILE_MAX_SIZE: str = '1 MB'
+
+    # Пагинация
+
+    PAGINATION_DEFAULT_PAGE_SIZE: int = 3
+    PAGINATION_MIN_SIZE: int = 1
+    PAGINATION_MAX_SIZE: int = 100
 
     # Валидация объектов
 
@@ -172,6 +180,7 @@ class Settings(BaseSettings):
     MESSAGE_REFRESH_TOKEN_NOT_FOUND: str = 'Предоставленный refresh токен не существует'
     MESSAGE_REFRESH_TOKEN_IS_EXPIRED: str = 'Предоставленный refresh токен истек'
     MESSAGE_TOKEN_CLEANUP_TASK_CREATED: str = 'Создана фоновая задача по удалению просроченных токенов аутентификации'
+    MESSAGE_USER_NOT_AUTHORIZED: str = 'Недостаточно полномочий на выполнение операции'
 
 
 settings = Settings()

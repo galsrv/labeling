@@ -1,5 +1,6 @@
 from pydantic import BaseModel, ConfigDict, computed_field
 
+from core.pagination import BasePageSchema
 from labels.schemas import LabelTemplatesReadSchema
 
 
@@ -26,3 +27,8 @@ class ItemReadSchema(BaseModel):
     def nominal_weight_str(self) -> str:
         """Номинальный вес с тремя знаками после запятой."""
         return f"{(self.nominal_weight or 0):.3f}"
+
+
+class ItemsPageSchema(BasePageSchema):
+    """Модель выдачи страницы данных."""
+    items: list[ItemReadSchema]

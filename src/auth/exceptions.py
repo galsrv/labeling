@@ -20,3 +20,7 @@ class RefreshTokenCreationError(BaseAuthException):
 
 class RefreshTokenDeletionError(BaseAuthException):
     """Ошибка удаления токена."""
+
+
+class NotAuthorizedError(Exception):
+    """Ошибка авторизации на выполнение операции."""

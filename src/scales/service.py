@@ -15,6 +15,7 @@ from frontend.responses import JsonToFrontendResponse
 
 from scales.repository import scales_repo
 from scales.schemas import (
+    ScalesPageSchema,
     ScalesReadSchema,
     ScalesCreateUpdateSchema,
     ScalesShortSchema,
@@ -26,11 +27,23 @@ T = TypeVar('T', bound=BaseModel)
 class ScalesService:
     """Сервисный слой для весов."""
 
-    async def get_all(self, session: AsyncSession) -> list[T]:
-        """Возвращаем все весы."""
-        scales = await scales_repo.get_all(session)
-        scales_dto = [ScalesReadSchema.model_validate(scales) for scales in scales]
-        return scales_dto
+    async def get_page(
+            self,
+            session: AsyncSession,
+            page: int,
+            size: int,
+        ) -> ScalesPageSchema:
+        """Возвращаем страницу списка весов."""
+        items, page, pages, size, total = await scales_repo.get_page(session, page, size)
+
+        scales_page_dto = ScalesPageSchema(
+            items=[ScalesReadSchema.model_validate(item) for item in items],
+            page=page,
+            pages=pages,
+            size=size,
+            total=total,
+        )
+        return scales_page_dto
 
     async def get(self, session: AsyncSession, scales_id: int) -> T:
         """Возвращаем весы по их id."""

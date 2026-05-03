@@ -45,6 +45,10 @@
   </table>
 </div>
 
+<div id="ordersPagination" class="mt-3 d-none"></div>
+
+{% include "_pagination.html" %}
+
 <script>
   const ordersApiUrl = '/api/v1/orders/';
   const ordersLoading = document.getElementById('ordersLoading');
@@ -52,11 +56,46 @@
   const ordersEmpty = document.getElementById('ordersEmpty');
   const ordersTableWrap = document.getElementById('ordersTableWrap');
   const ordersTableBody = document.getElementById('ordersTableBody');
+  const ordersPagination = document.getElementById('ordersPagination');
   const orderExecutionUrlTemplate = '{{ url_for("read_order", order_id=0) }}';
+
+  const initialParams = new URLSearchParams(window.location.search);
+  let currentPage = Number(initialParams.get('page')) || 1;
+  let currentSize = Number(initialParams.get('size')) || null;
 
   function setVisible(element, isVisible) {
     if (!element) return;
     element.classList.toggle('d-none', !isVisible);
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+  }
+
+  function buildOrdersUrl(page, size) {
+    const params = new URLSearchParams({ page: String(page) });
+
+    if (size) {
+      params.set('size', String(size));
+    }
+
+    return `${ordersApiUrl}?${params.toString()}`;
+  }
+
+  function updateBrowserUrl(page, size) {
+    const params = new URLSearchParams(window.location.search);
+    params.set('page', String(page));
+
+    if (size) {
+      params.set('size', String(size));
+    }
+
+    window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`);
   }
 
   function getOrderExecutionUrl(orderId) {
@@ -102,7 +141,7 @@
     if (normalizedStatus === 'CREATED') return '<span class="badge text-bg-secondary">Создано</span>';
     if (normalizedStatus === 'ACTIVE') return '<span class="badge text-bg-primary">Активно</span>';
     if (normalizedStatus === 'CLOSED') return '<span class="badge text-bg-success">Закрыто</span>';
-    return `<span class="badge text-bg-dark">${status}</span>`;
+    return `<span class="badge text-bg-dark">${escapeHtml(status)}</span>`;
   }
 
   function renderOrders(orders) {
@@ -110,13 +149,14 @@
 
     for (const order of orders) {
       const progressPct = getProgressPct(order);
+      const itemName = escapeHtml(order.item?.name || '—');
       const row = document.createElement('tr');
       row.innerHTML = `
         <td class="fw-semibold">#${order.id}</td>
         <td class="text-nowrap">${formatDate(order.production_date)}</td>
         <td>
-          <div class="fw-semibold text-truncate" style="max-width: 42rem;">
-            ${order.item?.name || '—'}
+          <div class="fw-semibold text-truncate" style="max-width: 42rem;" title="${itemName}">
+            ${itemName}
           </div>
         </td>
         <td class="text-nowrap">${getStatusBadge(order.status)}</td>
@@ -141,31 +181,44 @@
     }
   }
 
-  async function loadOrders() {
+  async function loadOrders(page = currentPage) {
     setVisible(ordersLoading, true);
     setVisible(ordersError, false);
     setVisible(ordersEmpty, false);
     setVisible(ordersTableWrap, false);
+    setVisible(ordersPagination, false);
 
     try {
-      const response = await fetch(ordersApiUrl);
+      const response = await fetch(buildOrdersUrl(page, currentSize));
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+        throw await window.apiClient.errorFromResponse(response, 'Не удалось загрузить список заданий.');
       }
 
-      const orders = await response.json();
+      const pageData = await response.json();
+      const orders = Array.isArray(pageData.items) ? pageData.items : [];
+
+      if (pageData.pages > 0 && pageData.page > pageData.pages) {
+        await loadOrders(pageData.pages);
+        return;
+      }
+
+      currentPage = Number(pageData.page ?? page);
+      currentSize = Number(pageData.size ?? currentSize);
+      updateBrowserUrl(currentPage, currentSize);
+
       setVisible(ordersLoading, false);
 
-      if (!Array.isArray(orders) || orders.length === 0) {
+      if (orders.length === 0) {
         setVisible(ordersEmpty, true);
         return;
       }
 
       renderOrders(orders);
       setVisible(ordersTableWrap, true);
-    } catch (_) {
+      window.pagination.render(ordersPagination, pageData, loadOrders);
+    } catch (error) {
       setVisible(ordersLoading, false);
-      ordersError.textContent = 'Не удалось загрузить список заданий.';
+      ordersError.textContent = error.message || 'Не удалось загрузить список заданий.';
       setVisible(ordersError, true);
     }
   }
