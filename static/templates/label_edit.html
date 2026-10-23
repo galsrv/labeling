@@ -160,8 +160,10 @@
   const labelsListUrl = '{{ url_for("web_get_all_labels") }}';
   const labelEditUrlTemplate = '{{ url_for("web_update_label_form", label_id=0) }}';
   const testPrintUrl = `${labelsApiBaseUrl}print_label_test`;
+  const testItemsPageSize = 100;
   const minEditorLines = 10;
   let currentPrinterId = null;
+  let hasTestItems = false;
 
   function setVisible(element, isVisible) {
     if (!element) return;
@@ -235,6 +237,32 @@
       throw await window.apiClient.errorFromResponse(response, 'Не удалось загрузить данные формы.');
     }
     return await response.json();
+  }
+
+  async function fetchAllItems() {
+    const items = [];
+    let page = 1;
+    let pages = 1;
+
+    while (page <= pages) {
+      const url = `${itemsApiUrl}?page=${page}&size=${testItemsPageSize}`;
+      const pageData = await fetchJson(url);
+
+      if (!Array.isArray(pageData.items)) {
+        throw new Error('Некорректный ответ сервера при загрузке продуктов.');
+      }
+
+      items.push(...pageData.items);
+      pages = Number(pageData.pages);
+
+      if (!Number.isInteger(pages) || pages < 0) {
+        throw new Error('Некорректные данные пагинации продуктов.');
+      }
+
+      page += 1;
+    }
+
+    return items;
   }
 
   async function parseApiError(response, fallbackMessage) {
@@ -374,6 +402,7 @@
 
   function populateItems(items) {
     testItem.innerHTML = '';
+    hasTestItems = items.length > 0;
 
     for (const item of items) {
       const option = document.createElement('option');
@@ -381,12 +410,14 @@
       option.textContent = item.name;
       testItem.appendChild(option);
     }
+
+    setVisible(testBtnWrap, Boolean(currentPrinterId) && hasTestItems);
   }
 
   function setPrinterInfo(message, printerId = null) {
     currentPrinterId = printerId;
     testPrinterInfo.textContent = message;
-    setVisible(testBtnWrap, Boolean(printerId));
+    setVisible(testBtnWrap, Boolean(printerId) && hasTestItems);
   }
 
   async function resolveWorkplacePrinter() {
@@ -434,9 +465,12 @@
 
   async function loadFormData() {
     try {
+      const itemsRequest = fetchAllItems()
+        .then((items) => ({ items, error: null }))
+        .catch((error) => ({ items: [], error }));
       const requests = [
         fetchJson(driversApiUrl),
-        fetchJson(itemsApiUrl),
+        itemsRequest,
         fetchJson(controlCodesApiUrl),
         fetchJson(labelVariablesApiUrl),
       ];
@@ -445,10 +479,10 @@
         requests.push(fetchJson(`${labelsApiBaseUrl}${labelId}`));
       }
 
-      const [drivers, items, controlCodes, labelVariables, label] = await Promise.all(requests);
+      const [drivers, itemsResult, controlCodes, labelVariables, label] = await Promise.all(requests);
 
       populateDrivers(drivers, label ? label.driver_name : '');
-      populateItems(items);
+      populateItems(itemsResult.items);
       renderTokenButtons(controlCodesButtons, controlCodes, 'btn-outline-primary');
       renderTokenButtons(labelVariablesButtons, labelVariables, 'btn-outline-success');
 
@@ -458,6 +492,12 @@
 
       setupInlineEdit();
       await resolveWorkplacePrinter();
+
+      if (itemsResult.error) {
+        setStatus(`Не удалось загрузить продукты для тестовой печати: ${itemsResult.error.message}`, 'err');
+      } else if (!itemsResult.items.length) {
+        setStatus('Продукты для тестовой печати не найдены.', 'muted');
+      }
 
       setVisible(labelEditLoading, false);
       setVisible(labelForm, true);

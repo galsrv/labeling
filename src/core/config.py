@@ -63,7 +63,7 @@ class Settings(BaseSettings):
 
     # Пагинация
 
-    PAGINATION_DEFAULT_PAGE_SIZE: int = 3
+    PAGINATION_DEFAULT_PAGE_SIZE: int = 8
     PAGINATION_MIN_SIZE: int = 1
     PAGINATION_MAX_SIZE: int = 100
 
